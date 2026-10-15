@@ -13,13 +13,14 @@ JARVIS/
 ├── main.py                     # Interactive terminal REPL
 ├── config.json                 # Core system configuration
 ├── requirements.txt            # Dependency specification
-├── tests/                      # Automated test suite (47 unit tests)
+├── tests/                      # Automated test suite (56 unit tests)
 │   ├── test_config.py          # Config merging and validation
 │   ├── test_security.py        # Sandbox & credential protection gates
 │   ├── test_memory.py          # Persistent memory and journal tests
 │   ├── test_database.py        # SQLite, FTS5 full-text & vector tests
 │   ├── test_semantic_memory.py # Vector recall & dynamic context tests
-│   ├── test_skills_registry.py # 76-skill schema and integrity tests
+│   ├── test_skills_registry.py # 81-skill schema and integrity tests
+│   ├── test_skills_browser.py  # Web intelligence, search, weather & stocks
 │   └── test_skills_system.py   # System automation and file tests
 ├── vyra/
 │   ├── brain.py                # ReAct think-act loop & multi-hop tool execution
@@ -33,7 +34,7 @@ JARVIS/
 │   ├── remote_telegram.py      # Encrypted Telegram bot gateway (voice + commands)
 │   ├── voice.py                # Local Faster-Whisper ASR + Neural Edge-TTS engine
 │   ├── wake.py                 # Continuous passive wake word detection
-│   └── skills/                 # Modular 76-Skill Dispatcher
+│   └── skills/                 # Modular 81-Skill Dispatcher
 │       ├── common.py           # Path resolution, security validation, Win32 desktop API
 │       ├── system.py           # Terminal, window management, volume, hotkeys, input
 │       ├── files.py            # File I/O, search, listing, and safe recycling
@@ -47,7 +48,7 @@ JARVIS/
 
 ---
 
-## Core Capabilities (76 Registered Skills)
+## Core Capabilities (81 Registered Skills)
 
 1. **Hybrid Semantic Memory Engine (SQLite + Vector Embeddings)**:
    - Embedded SQLite storage running in Write-Ahead Logging (`WAL`) mode with foreign keys.
@@ -60,18 +61,24 @@ JARVIS/
    - **Tactical (Default)**: Efficient, respectful JARVIS/FRIDAY tone.
    - **Engineer**: Dense, technical, code-first answers with zero conversational pleasantries.
    - **Ghost**: Silent, stealth execution with minimal spoken feedback.
-3. **Voice & Hearing Pipeline**:
+3. **Live Internet & Online Intelligence Superpowers**:
+   - `real_web_search`: Direct live search retrieving answers, snippets, and citations into memory context without opening a browser window.
+   - `check_weather`: Real-time weather, temperature, humidity, wind, and forecasts via Open-Meteo.
+   - `check_stock_crypto`: Live quotes, currency conversions (USD/INR), and 24h percentage changes for stocks and cryptocurrencies via Yahoo Finance and CoinGecko.
+   - `news_briefing`: Fetches top technology, world, or business headlines from HackerNews and BBC RSS feeds.
+   - `summarize_webpage`: Extracts readable article text from any URL and generates structured executive summaries.
+4. **Voice & Hearing Pipeline**:
    - Local, privacy-first transcription with **Faster-Whisper** (`small` model on NVIDIA CUDA with CPU fallback).
    - High-fidelity neural voice synthesis via Microsoft Edge-TTS with multi-lingual auto-switching (English + Hindi `hi-IN-MadhurNeural`).
    - Non-blocking continuous wake-word monitoring (`"Rusty"`, `"Friday"`, `"Jarvis"`).
-4. **Tactical Holographic HUD (Stark Industries Interface)**:
+5. **Tactical Holographic HUD (Stark Industries Interface)**:
    - High-FPS canvas-based Arc Reactor core, real-time audio spectrum, and live hardware telemetry (CPU, RAM, GPU, battery, ping).
    - Borderless desktop PiP application or browser view with real-time spoken and visual task progress updates.
-5. **Hardware & Desktop Automation**:
+6. **Hardware & Desktop Automation**:
    - Win32 window enumeration, smart tab closing (`Ctrl+W`), process management, master volume control, screen brightness, and lock/sleep triggers.
-6. **Autonomous Office & Document Generation**:
+7. **Autonomous Office & Document Generation**:
    - Generates fully populated, styled Word documents (`.docx`), presentation decks (`.pptx`), Excel sheets (`.xlsx`), and clean formatted PDFs (`reportlab`) with live progress reporting.
-7. **Secure Remote Gateway (Phone Control)**:
+8. **Secure Remote Gateway (Phone Control)**:
    - Control your PC from anywhere in the world via Telegram with constant-time HMAC authentication, rate-limiting, and 15-minute brute-force lockout.
    - Send files from PC to phone with a single voice directive.
 
@@ -125,7 +132,7 @@ VYRA_API_KEY=your_gemini_or_claude_api_key
 
 ## Automated Test Suite
 
-Rusty includes a comprehensive 47-test unit testing suite verifying configuration parsing, security boundaries, memory persistence, schema validity, and tool dispatch:
+Rusty includes a comprehensive 56-test unit testing suite verifying configuration parsing, security boundaries, memory persistence, schema validity, online intelligence, and tool dispatch:
 
 ```bash
 python -m unittest discover tests -v

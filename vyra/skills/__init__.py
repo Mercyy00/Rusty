@@ -38,14 +38,19 @@ from .assistant import (
 )
 from .browser import (
     BROWSER_SKILLS,
+    check_stock_crypto,
+    check_weather,
     close_browser_tab,
     configure_browser,
     delete_link,
     list_saved_links,
+    news_briefing,
     open_saved_link,
     open_url,
     open_youtube,
+    real_web_search,
     save_link,
+    summarize_webpage,
     web_answer,
     web_search,
 )
@@ -216,6 +221,11 @@ __all__ = [
     "list_folder",
     "empty_recycle_bin",
     # Browser
+    "real_web_search",
+    "check_weather",
+    "check_stock_crypto",
+    "news_briefing",
+    "summarize_webpage",
     "web_search",
     "web_answer",
     "open_url",
