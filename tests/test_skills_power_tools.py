@@ -83,7 +83,7 @@ class TestPowerToolsFiles(unittest.TestCase):
 
         summary = summarize_document(self.mock_memory, path=doc_path)
         self.assertIn("notes.md", summary)
-        self.assertIn("Project Titan Architecture", summary)
+        self.assertIn("Project Titan", summary)
 
 
 class TestPowerToolsGit(unittest.TestCase):

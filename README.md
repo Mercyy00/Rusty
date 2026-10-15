@@ -13,15 +13,18 @@ JARVIS/
 ├── main.py                     # Interactive terminal REPL
 ├── config.json                 # Core system configuration
 ├── requirements.txt            # Dependency specification
-├── tests/                      # Automated test suite (66 unit tests)
+├── antigravity_ui_map.json     # UI locators and shortcuts for Antigravity control
+├── SECURITY.md                 # Security policy, threat model, and safety gates
+├── tests/                      # Automated test suite (77 unit tests)
 │   ├── test_config.py          # Config merging and validation
 │   ├── test_security.py        # Sandbox & credential protection gates
 │   ├── test_memory.py          # Persistent memory and journal tests
 │   ├── test_database.py        # SQLite, FTS5 full-text & vector tests
 │   ├── test_semantic_memory.py # Vector recall & dynamic context tests
-│   ├── test_skills_registry.py # 88-skill schema and integrity tests
+│   ├── test_skills_registry.py # 116-skill schema and integrity tests
 │   ├── test_skills_browser.py  # Web intelligence, search, weather & stocks
 │   ├── test_skills_power_tools.py # Developer tools, diagnostics, and Protocol Zero
+│   ├── test_skills_antigravity.py # Antigravity IDE controller & agent safety tests
 │   └── test_skills_system.py   # System automation and file tests
 ├── vyra/
 │   ├── brain.py                # ReAct think-act loop & multi-hop tool execution
@@ -35,23 +38,33 @@ JARVIS/
 │   ├── remote_telegram.py      # Encrypted Telegram bot gateway (voice + commands)
 │   ├── voice.py                # Local Faster-Whisper ASR + Neural Edge-TTS engine
 │   ├── wake.py                 # Continuous passive wake word detection
-│   └── skills/                 # Modular 88-Skill Dispatcher
+│   └── skills/                 # Modular 116-Skill Dispatcher
 │       ├── common.py           # Path resolution, security validation, Win32 desktop API
 │       ├── system.py           # Terminal, window management, volume, hotkeys, input
 │       ├── files.py            # File I/O, search, listing, and safe recycling
 │       ├── browser.py          # Browser automation, tab control, web research, links
 │       ├── media.py            # Raaga music app, audio controls, screen vision, screenshots
 │       ├── comms.py            # Telegram file transfer, WhatsApp, Drive backup, GitHub CLI
-│       └── assistant.py        # Memory facts, notes, reminders, routines, deep thinking
+│       ├── assistant.py        # Memory facts, notes, reminders, routines, deep thinking
+│       └── antigravity_app.py  # Antigravity IDE automation, transcript telemetry & safety
 └── .github/workflows/
     └── ci.yml                  # Automated continuous integration workflow
 ```
 
 ---
 
-## Core Capabilities (88 Registered Skills)
+## Core Capabilities (116 Registered Skills)
 
-1. **Hybrid Semantic Memory Engine (SQLite + Vector Embeddings)**:
+1. **Antigravity IDE & Multi-Agent Control (28 Skills)**:
+   - **Lifecycle & Windows**: Launch IDE workspaces, detect running processes, restore/focus window, screenshot audit, and clean shutdowns (`ag_launch`, `ag_status`, `ag_focus`, `ag_screenshot`).
+   - **Zero-Lag Telemetry**: Direct stream reading from `transcript.jsonl` and `conversations/*.db` for 100% faithful extraction of agent thought steps, tool execution requests, and plans without visual OCR errors (`ag_read_agent_output`, `ag_wait_for_agent`).
+   - **Agent Directives & Context**: Injects structured prompts directly into the active chat session via CLI chat subcommands, attaching contextual files (`ag_send_prompt`).
+   - **Code-Enforced Approval Gates**: Sensitive approval actions (`ag_approve`) require explicit code-level confirmation; untrusted data cannot satisfy confirmation gates. Dedicated kill switch (`ag_stop_agent`) immediately aborts external agent automation.
+   - **Workspace Navigation & Terminals**: Opens folders, navigates to precise `file:line` locations, searches workspace text, triggers command palette actions, and manages the integrated terminal panel (`ag_open_file`, `ag_search_workspace`, `ag_command_palette`, `ag_open_terminal`).
+   - **Compound Supervised Workflows**: High-level developer routines: `ag_build_feature` (spec-to-plan), `ag_fix_failing_tests` (auto-diagnose), and `ag_review_changes` (code review).
+   - **Locator Self-Test**: Automated validation of CLI launchers, UI locators, process health, and telemetry paths (`ag_selftest`).
+2. **Hybrid Semantic Memory Engine (SQLite + Vector Embeddings)**:
+
    - Embedded SQLite storage running in Write-Ahead Logging (`WAL`) mode with foreign keys.
    - Dense 384-dimensional vector embeddings with cosine similarity matching.
    - Dual-tier vector generator: connects to cloud embedding models with an offline-capable deterministic subword n-gram neural hash fallback.

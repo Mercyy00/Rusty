@@ -1,0 +1,95 @@
+{
+  "version": "1.107.0",
+  "app_name": "Antigravity",
+  "process_name": "Antigravity.exe",
+  "executable_paths": [
+    "D:\\engineers\\Antigravity\\Antigravity.exe",
+    "C:\\Users\\Perfect\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe"
+  ],
+  "cli_paths": [
+    "D:\\engineers\\Antigravity\\bin\\antigravity.CMD",
+    "antigravity"
+  ],
+  "data_paths": {
+    "app_data": "C:\\Users\\Perfect\\.gemini\\antigravity",
+    "conversations_db": "C:\\Users\\Perfect\\.gemini\\antigravity\\conversation_summaries.db",
+    "conversations_dir": "C:\\Users\\Perfect\\.gemini\\antigravity\\conversations",
+    "user_settings": "C:\\Users\\Perfect\\AppData\\Roaming\\Antigravity\\User\\settings.json",
+    "user_keybindings": "C:\\Users\\Perfect\\AppData\\Roaming\\Antigravity\\User\\keybindings.json"
+  },
+  "shortcuts": {
+    "command_palette": {
+      "primary": "ctrl+shift+p",
+      "fallback": "f1",
+      "action": "workbench.action.showCommands"
+    },
+    "quick_open_file": {
+      "primary": "ctrl+p",
+      "fallback": "ctrl+e",
+      "action": "workbench.action.quickOpen"
+    },
+    "toggle_terminal": {
+      "primary": "ctrl+`",
+      "fallback": "ctrl+shift+`",
+      "action": "workbench.action.terminal.toggleTerminal"
+    },
+    "save_file": {
+      "primary": "ctrl+s",
+      "fallback": null,
+      "action": "workbench.action.files.save"
+    },
+    "save_all": {
+      "primary": "ctrl+k s",
+      "fallback": "ctrl+alt+s",
+      "action": "workbench.action.files.saveAll"
+    },
+    "search_workspace": {
+      "primary": "ctrl+shift+f",
+      "fallback": null,
+      "action": "workbench.action.findInFiles"
+    },
+    "close_tab": {
+      "primary": "ctrl+w",
+      "fallback": "ctrl+f4",
+      "action": "workbench.action.closeActiveEditor"
+    },
+    "focus_chat": {
+      "primary": "ctrl+l",
+      "fallback": "ctrl+shift+i",
+      "action": "antigravity.chat.focus"
+    },
+    "new_chat": {
+      "primary": "ctrl+n",
+      "fallback": "ctrl+shift+l",
+      "action": "workbench.action.chat.newChat"
+    }
+  },
+  "commands": {
+    "open_settings": "workbench.action.openSettings",
+    "open_keybindings": "workbench.action.openGlobalKeybindings",
+    "reload_window": "workbench.action.reloadWindow",
+    "close_window": "workbench.action.closeWindow",
+    "toggle_sidebar": "workbench.action.toggleSidebarVisibility",
+    "toggle_panel": "workbench.action.togglePanel"
+  },
+  "locators": {
+    "chat_input": {
+      "type": "uia_or_keys",
+      "name": "Chat Input",
+      "shortcut": "ctrl+l",
+      "description": "Agent chat prompt input text area"
+    },
+    "terminal_panel": {
+      "type": "uia_or_keys",
+      "name": "Terminal Panel",
+      "shortcut": "ctrl+`",
+      "description": "Integrated interactive terminal panel"
+    },
+    "command_palette_input": {
+      "type": "uia_or_keys",
+      "name": "Command Palette",
+      "shortcut": "ctrl+shift+p",
+      "description": "VS Code / Antigravity command palette search"
+    }
+  }
+}

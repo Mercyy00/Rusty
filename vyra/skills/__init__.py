@@ -15,6 +15,37 @@ from __future__ import annotations
 import inspect
 
 from .. import office_skills as _office
+from .antigravity_app import (
+    ANTIGRAVITY_SKILLS,
+    ag_approve,
+    ag_build_feature,
+    ag_close_window,
+    ag_command_palette,
+    ag_fix_failing_tests,
+    ag_focus,
+    ag_install_extension,
+    ag_launch,
+    ag_list_extensions,
+    ag_list_open_tabs,
+    ag_list_pending_approvals,
+    ag_new_window,
+    ag_open_file,
+    ag_open_folder,
+    ag_open_settings,
+    ag_open_terminal,
+    ag_read_agent_output,
+    ag_reject,
+    ag_review_changes,
+    ag_run_in_terminal,
+    ag_save_all,
+    ag_screenshot,
+    ag_search_workspace,
+    ag_selftest,
+    ag_send_prompt,
+    ag_status,
+    ag_stop_agent,
+    ag_wait_for_agent,
+)
 from .assistant import (
     ASSISTANT_SKILLS,
     audit_action_history,
@@ -161,7 +192,9 @@ SKILLS: list[dict] = (
     + COMMS_SKILLS
     + ASSISTANT_SKILLS
     + OFFICE_SKILLS
+    + ANTIGRAVITY_SKILLS
 )
+
 
 _BY_NAME = {s["name"]: s for s in SKILLS}
 
@@ -282,5 +315,35 @@ __all__ = [
     "send_to_claude",
     "deep_think",
     "get_datetime",
+    # Antigravity App Control
+    "ag_launch",
+    "ag_status",
+    "ag_focus",
+    "ag_new_window",
+    "ag_close_window",
+    "ag_screenshot",
+    "ag_open_folder",
+    "ag_open_file",
+    "ag_search_workspace",
+    "ag_list_open_tabs",
+    "ag_save_all",
+    "ag_send_prompt",
+    "ag_read_agent_output",
+    "ag_wait_for_agent",
+    "ag_list_pending_approvals",
+    "ag_approve",
+    "ag_reject",
+    "ag_stop_agent",
+    "ag_open_terminal",
+    "ag_run_in_terminal",
+    "ag_open_settings",
+    "ag_list_extensions",
+    "ag_install_extension",
+    "ag_command_palette",
+    "ag_build_feature",
+    "ag_fix_failing_tests",
+    "ag_review_changes",
+    "ag_selftest",
 ]
+
 

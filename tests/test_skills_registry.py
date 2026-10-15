@@ -8,8 +8,8 @@ from vyra import skills
 
 class TestSkillsRegistry(unittest.TestCase):
     def test_total_skills_count(self):
-        """Verify exactly 88 skills are registered across all modular categories."""
-        self.assertEqual(len(skills.SKILLS), 88)
+        """Verify exactly 116 skills are registered across all modular categories."""
+        self.assertEqual(len(skills.SKILLS), 116)
         self.assertIn("search_memory", skills._BY_NAME)
         self.assertIn("real_web_search", skills._BY_NAME)
         self.assertIn("check_weather", skills._BY_NAME)
@@ -24,6 +24,18 @@ class TestSkillsRegistry(unittest.TestCase):
         self.assertIn("summarize_document", skills._BY_NAME)
         self.assertIn("git_repo_status", skills._BY_NAME)
         self.assertIn("audit_action_history", skills._BY_NAME)
+        # Antigravity Desktop App Control
+        self.assertIn("ag_launch", skills._BY_NAME)
+        self.assertIn("ag_status", skills._BY_NAME)
+        self.assertIn("ag_focus", skills._BY_NAME)
+        self.assertIn("ag_send_prompt", skills._BY_NAME)
+        self.assertIn("ag_read_agent_output", skills._BY_NAME)
+        self.assertIn("ag_wait_for_agent", skills._BY_NAME)
+        self.assertIn("ag_approve", skills._BY_NAME)
+        self.assertIn("ag_reject", skills._BY_NAME)
+        self.assertIn("ag_stop_agent", skills._BY_NAME)
+        self.assertIn("ag_build_feature", skills._BY_NAME)
+        self.assertIn("ag_selftest", skills._BY_NAME)
 
     def test_no_duplicate_skill_names(self):
         """Verify all skill names are globally unique."""
