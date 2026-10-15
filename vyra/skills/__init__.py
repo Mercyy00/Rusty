@@ -70,6 +70,36 @@ from .computer_use import (
     cu_scroll_app,
     cu_type_in_app,
 )
+from .research import (
+    RESEARCH_SKILLS,
+    research_topic,
+)
+from .self_awareness import (
+    SELF_AWARENESS_SKILLS,
+    explain_last_action,
+    list_my_tools,
+    undo_last_action,
+)
+from .subagents import (
+    SUBAGENT_SKILLS,
+    cancel_subagent,
+    check_subagent,
+    list_subagents,
+    spawn_subagent,
+)
+from .projects import (
+    PROJECT_SKILLS,
+    delete_project_context,
+    get_project_context,
+    list_project_contexts,
+    set_project_context,
+)
+from .scheduler import (
+    SCHEDULER_SKILLS,
+    cancel_scheduled_routine,
+    list_scheduled_routines,
+    schedule_routine,
+)
 
 from .assistant import (
     ASSISTANT_SKILLS,
@@ -221,6 +251,11 @@ SKILLS: list[dict] = (
     + CUSTOM_SKILL_TOOLS
     + MCP_SKILLS
     + COMPUTER_USE_SKILLS
+    + RESEARCH_SKILLS
+    + SELF_AWARENESS_SKILLS
+    + SUBAGENT_SKILLS
+    + PROJECT_SKILLS
+    + SCHEDULER_SKILLS
 )
 
 
@@ -391,6 +426,26 @@ __all__ = [
     "cu_press_key_in_app",
     "cu_scroll_app",
     "cu_inspect_app",
+    # Research Mode
+    "research_topic",
+    # Self-Awareness & Safety
+    "list_my_tools",
+    "explain_last_action",
+    "undo_last_action",
+    # Sub-Agents
+    "spawn_subagent",
+    "check_subagent",
+    "cancel_subagent",
+    "list_subagents",
+    # Per-Project Context
+    "set_project_context",
+    "get_project_context",
+    "list_project_contexts",
+    "delete_project_context",
+    # Scheduled Routines
+    "schedule_routine",
+    "list_scheduled_routines",
+    "cancel_scheduled_routine",
 ]
 
 

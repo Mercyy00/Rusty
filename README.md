@@ -15,17 +15,19 @@ JARVIS/
 ├── requirements.txt            # Dependency specification
 ├── antigravity_ui_map.json     # UI locators and shortcuts for Antigravity control
 ├── SECURITY.md                 # Security policy, threat model, and safety gates
-├── tests/                      # Automated test suite (77 unit tests)
+├── tests/                      # Automated test suite (96 unit tests, 100% passing)
 │   ├── test_config.py          # Config merging and validation
 │   ├── test_security.py        # Sandbox & credential protection gates
 │   ├── test_memory.py          # Persistent memory and journal tests
 │   ├── test_database.py        # SQLite, FTS5 full-text & vector tests
 │   ├── test_semantic_memory.py # Vector recall & dynamic context tests
-│   ├── test_skills_registry.py # 116-skill schema and integrity tests
+│   ├── test_skills_registry.py # 146-skill schema and integrity tests
 │   ├── test_skills_browser.py  # Web intelligence, search, weather & stocks
 │   ├── test_skills_power_tools.py # Developer tools, diagnostics, and Protocol Zero
 │   ├── test_skills_antigravity.py # Antigravity IDE controller & agent safety tests
-│   └── test_skills_system.py   # System automation and file tests
+│   ├── test_skills_claude_desktop.py # MCP client, custom skills, computer use, subagents, research
+│   ├── test_skills_system.py   # System automation and file tests
+│   └── test_voice_patience.py  # Speech brevity and adaptive listening silence tests
 ├── vyra/
 │   ├── brain.py                # ReAct think-act loop & multi-hop tool execution
 │   ├── config.py               # Layered configuration & environment parser
@@ -36,9 +38,9 @@ JARVIS/
 │   ├── memory.py               # Hybrid SQLite + vector + FTS5 persistent memory
 │   ├── office_skills.py        # Comprehensive Office, PDF, PPTX & project generation
 │   ├── remote_telegram.py      # Encrypted Telegram bot gateway (voice + commands)
-│   ├── voice.py                # Local Faster-Whisper ASR + Neural Edge-TTS engine
+│   ├── voice.py                # Local Faster-Whisper ASR + Neural Edge-TTS engine with conciseness filter
 │   ├── wake.py                 # Continuous passive wake word detection
-│   └── skills/                 # Modular 116-Skill Dispatcher
+│   └── skills/                 # Modular 146-Skill Dispatcher
 │       ├── common.py           # Path resolution, security validation, Win32 desktop API
 │       ├── system.py           # Terminal, window management, volume, hotkeys, input
 │       ├── files.py            # File I/O, search, listing, and safe recycling
@@ -46,14 +48,22 @@ JARVIS/
 │       ├── media.py            # Raaga music app, audio controls, screen vision, screenshots
 │       ├── comms.py            # Telegram file transfer, WhatsApp, Drive backup, GitHub CLI
 │       ├── assistant.py        # Memory facts, notes, reminders, routines, deep thinking
-│       └── antigravity_app.py  # Antigravity IDE automation, transcript telemetry & safety
+│       ├── antigravity_app.py  # Antigravity IDE automation, transcript telemetry & safety
+│       ├── skills_manager.py   # Custom skill folder loader & manager (SKILL.md format)
+│       ├── mcp_client.py       # Model Context Protocol client (stdio/http) & tool dispatcher
+│       ├── computer_use.py     # AppProfile computer use abstraction (browser, terminal, app)
+│       ├── research.py         # Multi-step deep research mode, citations & report generation
+│       ├── self_awareness.py   # Tool capability matrix, audit explanation & safe undo
+│       ├── subagents.py        # Asynchronous background worker sub-agent framework
+│       ├── projects.py         # Per-project instructions and context management
+│       └── scheduler.py        # Scheduled recurring routines and background tasks
 └── .github/workflows/
     └── ci.yml                  # Automated continuous integration workflow
 ```
 
 ---
 
-## Core Capabilities (116 Registered Skills)
+## Core Capabilities (146 Registered Skills)
 
 1. **Antigravity IDE & Multi-Agent Control (28 Skills)**:
    - **Lifecycle & Windows**: Launch IDE workspaces, detect running processes, restore/focus window, screenshot audit, and clean shutdowns (`ag_launch`, `ag_status`, `ag_focus`, `ag_screenshot`).
@@ -89,18 +99,29 @@ JARVIS/
    - `summarize_document`: Reads and extracts an executive summary from any PDF, Word, presentation, or code file.
    - `git_repo_status`: Inspects active branch, ahead/behind commit counts, dirty files, and recent commit history.
    - `audit_action_history`: Queries recent tool executions with duration in milliseconds directly from SQLite.
-5. **Voice & Hearing Pipeline**:
-   - Local, privacy-first transcription with **Faster-Whisper** (`small` model on NVIDIA CUDA with CPU fallback).
+5. **Voice & Hearing Pipeline (Listening Patience & Speech Brevity)**:
+   - **Adaptive Listening Patience**: Increased silence detection threshold to 1.8s (with dynamic expansion up to 2.2s during early speech fragments) so users are never cut off prematurely while pausing to think.
+   - **Spoken Conciseness Engine (`extract_spoken_summary`)**: Decouples audio speech from screen output. If a response contains 10 lines of lists, tables, markdown files, or code blocks, the complete response is displayed visually in chat/HUD/Telegram, while the voice speaker only reads a crisp 1–2 sentence direct answer/takeaway.
+   - Local transcription with **Faster-Whisper** (`small` model on NVIDIA CUDA with CPU fallback).
    - High-fidelity neural voice synthesis via Microsoft Edge-TTS with multi-lingual auto-switching (English + Hindi `hi-IN-MadhurNeural`).
    - Non-blocking continuous wake-word monitoring (`"Rusty"`, `"Friday"`, `"Jarvis"`).
-6. **Tactical Holographic HUD (Stark Industries Interface)**:
+6. **Claude-Desktop-Class Capabilities Framework**:
+   - **Custom Skill Folders**: Modular `skills_custom/<name>/SKILL.md` bundles with YAML frontmatter, execution instructions, risk levels, and trigger conditions (`list_custom_skills`, `create_custom_skill`, `read_custom_skill`, `delete_custom_skill`).
+   - **Model Context Protocol (MCP) Client**: Full JSON-RPC 2.0 stdio and HTTP client connecting to arbitrary MCP tool servers configured in `mcp_servers.json`, with safety confirmation gates (`mcp_list_servers`, `mcp_list_tools`, `mcp_call_tool`, `mcp_add_server`).
+   - **Universal Computer Use (`AppProfile`)**: OS-level app control abstraction supporting browser, terminal, and custom desktop applications (`cu_focus_app`, `cu_screenshot_app`, `cu_click_app`, `cu_type_in_app`, `cu_press_key_in_app`, `cu_scroll_app`, `cu_inspect_app`).
+   - **Deep Research Mode**: Multi-step web research protocol deconstructing questions into multiple queries, extracting body text from primary sources, compiling verified citations, and assembling structured reports saved to `.md` or `.docx` (`research_topic`).
+   - **Self-Awareness & Introspection**: Full capability matrix breakdown by domain (`list_my_tools`), post-action explanation with secret redaction (`explain_last_action`), and safe recovery/undo using Recycle Bin inspection (`undo_last_action`).
+   - **Asynchronous Sub-Agents**: Background worker framework capable of running long-running research or audit jobs with real-time progress event streaming and cancellation tokens (`spawn_subagent`, `check_subagent`, `cancel_subagent`, `list_subagents`).
+   - **Per-Project Context Isolation**: Save and manage project-specific architecture rules, coding standards, and key files (`set_project_context`, `get_project_context`, `list_project_contexts`, `delete_project_context`).
+   - **Scheduled Routines**: Cron-style persistent task scheduling for automated daily briefs and background maintenance (`schedule_routine`, `list_scheduled_routines`, `cancel_scheduled_routine`).
+7. **Tactical Holographic HUD (Stark Industries Interface)**:
    - High-FPS canvas-based Arc Reactor core, real-time audio spectrum, and live hardware telemetry (CPU, RAM, GPU, battery, ping).
    - Borderless desktop PiP application or browser view with real-time spoken and visual task progress updates.
-7. **Hardware & Desktop Automation**:
+8. **Hardware & Desktop Automation**:
    - Win32 window enumeration, smart tab closing (`Ctrl+W`), process management, master volume control, screen brightness, and lock/sleep triggers.
-8. **Autonomous Office & Document Generation**:
+9. **Autonomous Office & Document Generation**:
    - Generates fully populated, styled Word documents (`.docx`), presentation decks (`.pptx`), Excel sheets (`.xlsx`), and clean formatted PDFs (`reportlab`) with live progress reporting.
-9. **Secure Remote Gateway (Phone Control)**:
+10. **Secure Remote Gateway (Phone Control)**:
    - Control your PC from anywhere in the world via Telegram with constant-time HMAC authentication, rate-limiting, and 15-minute brute-force lockout.
    - Send files from PC to phone with a single voice directive.
 
@@ -154,7 +175,7 @@ VYRA_API_KEY=your_gemini_or_claude_api_key
 
 ## Automated Test Suite
 
-Rusty includes a comprehensive 56-test unit testing suite verifying configuration parsing, security boundaries, memory persistence, schema validity, online intelligence, and tool dispatch:
+Rusty includes a comprehensive 96-test unit testing suite verifying configuration parsing, security boundaries, memory persistence, schema validity, online intelligence, Claude-Desktop capabilities, and tool dispatch:
 
 ```bash
 python -m unittest discover tests -v

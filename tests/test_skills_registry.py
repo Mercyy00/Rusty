@@ -8,8 +8,8 @@ from vyra import skills
 
 class TestSkillsRegistry(unittest.TestCase):
     def test_total_skills_count(self):
-        """Verify exactly 131 skills are registered across all modular categories."""
-        self.assertEqual(len(skills.SKILLS), 131)
+        """Verify exactly 146 skills are registered across all modular categories."""
+        self.assertEqual(len(skills.SKILLS), 146)
         self.assertIn("search_memory", skills._BY_NAME)
         self.assertIn("real_web_search", skills._BY_NAME)
         self.assertIn("check_weather", skills._BY_NAME)
@@ -46,6 +46,22 @@ class TestSkillsRegistry(unittest.TestCase):
         self.assertIn("cu_focus_app", skills._BY_NAME)
         self.assertIn("cu_type_in_app", skills._BY_NAME)
         self.assertIn("cu_click_app", skills._BY_NAME)
+        # Research Mode
+        self.assertIn("research_topic", skills._BY_NAME)
+        # Self-Awareness
+        self.assertIn("list_my_tools", skills._BY_NAME)
+        self.assertIn("explain_last_action", skills._BY_NAME)
+        self.assertIn("undo_last_action", skills._BY_NAME)
+        # Sub-Agents
+        self.assertIn("spawn_subagent", skills._BY_NAME)
+        self.assertIn("check_subagent", skills._BY_NAME)
+        self.assertIn("cancel_subagent", skills._BY_NAME)
+        self.assertIn("list_subagents", skills._BY_NAME)
+        # Projects & Scheduler
+        self.assertIn("set_project_context", skills._BY_NAME)
+        self.assertIn("get_project_context", skills._BY_NAME)
+        self.assertIn("schedule_routine", skills._BY_NAME)
+        self.assertIn("list_scheduled_routines", skills._BY_NAME)
 
     def test_no_duplicate_skill_names(self):
         """Verify all skill names are globally unique."""

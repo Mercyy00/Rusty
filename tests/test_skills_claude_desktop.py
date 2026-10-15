@@ -109,5 +109,167 @@ class TestComputerUseAppProfile(unittest.TestCase):
         self.assertIn("blender", custom.process_names)
 
 
+class TestResearchMode(unittest.TestCase):
+    def setUp(self):
+        self.mock_memory = MagicMock()
+
+    @patch("vyra.skills.research._fetch_url_text")
+    @patch("vyra.skills.browser.real_web_search")
+    def test_research_topic_generation(self, mock_search, mock_fetch):
+        from vyra.skills.research import research_topic
+        mock_search.return_value = "- [AlphaFold Docs](https://alphafold.ebi.ac.uk): Protein structure predictions database."
+        mock_fetch.return_value = "AlphaFold is an AI system developed by Google DeepMind that predicts 3D structure."
+
+        res = research_topic(self.mock_memory, topic="AlphaFold 3 Architecture", depth="quick")
+        self.assertIn("Research protocol completed", res)
+        self.assertIn("AlphaFold 3 Architecture", res)
+        self.assertIn("Report saved to", res)
+
+
+class TestSelfAwareness(unittest.TestCase):
+    def setUp(self):
+        self.mock_memory = MagicMock()
+
+    def test_list_my_tools_summary(self):
+        from vyra.skills.self_awareness import list_my_tools
+        res = list_my_tools(self.mock_memory)
+        self.assertIn("Capability Matrix", res)
+        self.assertIn("Antigravity IDE Automation", res)
+        self.assertIn("Computer Use", res)
+        self.assertIn("Model Context Protocol (MCP)", res)
+
+    def test_list_my_tools_filtered(self):
+        from vyra.skills.self_awareness import list_my_tools
+        res = list_my_tools(self.mock_memory, category="antigravity")
+        self.assertIn("Antigravity IDE Automation", res)
+        self.assertIn("ag_launch", res)
+
+    def test_explain_last_action_redaction(self):
+        from vyra.skills.self_awareness import explain_last_action
+        self.mock_memory.get_recent_actions.return_value = [{
+            "skill_name": "backup_to_drive",
+            "args": {"api_key": "secret123", "folder": "docs"},
+            "result": "Upload successful",
+            "status": "success",
+            "duration_ms": 120.5,
+            "timestamp": "2026-10-15T18:00:00",
+        }]
+        res = explain_last_action(self.mock_memory)
+        self.assertIn("backup_to_drive", res)
+        self.assertIn("[REDACTED]", res)
+        self.assertNotIn("secret123", res)
+
+    def test_undo_last_action_recycle_bin(self):
+        from vyra.skills.self_awareness import undo_last_action
+        self.mock_memory.get_recent_actions.return_value = [{
+            "skill_name": "delete_file",
+            "args": {"path": "notes.txt"},
+            "result": "Deleted",
+            "status": "success",
+        }]
+        res = undo_last_action(self.mock_memory)
+        self.assertIn("Recycle Bin", res)
+        self.assertIn("notes.txt", res)
+
+
+class TestSubagentFramework(unittest.TestCase):
+    def setUp(self):
+        self.mock_memory = MagicMock()
+
+    def test_spawn_check_cancel_subagent(self):
+        from vyra.skills.subagents import (
+            cancel_subagent,
+            check_subagent,
+            list_subagents,
+            spawn_subagent,
+        )
+        res = spawn_subagent(self.mock_memory, task="Audit security rules", role="CodeAuditor")
+        self.assertIn("Spawned sub-agent", res)
+        self.assertIn("subagent-", res)
+
+        sub_id = res.split("`")[1]
+        listing = list_subagents(self.mock_memory)
+        self.assertIn(sub_id, listing)
+
+        status_res = check_subagent(self.mock_memory, sub_id)
+        self.assertIn(sub_id, status_res)
+        self.assertIn("CodeAuditor", status_res)
+
+        cancel_res = cancel_subagent(self.mock_memory, sub_id)
+        self.assertIn("Cancellation signal dispatched", cancel_res)
+
+
+class TestProjectContext(unittest.TestCase):
+    def setUp(self):
+        self.mock_memory = MagicMock()
+        self.test_dir = tempfile.mkdtemp(prefix="rusty_projects_")
+        from pathlib import Path
+        self.patcher = patch("vyra.skills.projects.PROJECTS_STORE", Path(self.test_dir) / "projects.json")
+        self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
+        if os.path.exists(self.test_dir):
+            shutil.rmtree(self.test_dir)
+
+    def test_set_and_get_project_context(self):
+        from vyra.skills.projects import (
+            delete_project_context,
+            get_project_context,
+            list_project_contexts,
+            set_project_context,
+        )
+        set_res = set_project_context(
+            self.mock_memory,
+            project_name="JarvisCore",
+            instructions="Maintain 100% test coverage and safe deletion.",
+            files=["main.py", "config.py"],
+        )
+        self.assertIn("saved successfully", set_res)
+
+        get_res = get_project_context(self.mock_memory, "JarvisCore")
+        self.assertIn("JarvisCore", get_res)
+        self.assertIn("100% test coverage", get_res)
+        self.assertIn("main.py", get_res)
+
+        listing = list_project_contexts(self.mock_memory)
+        self.assertIn("JarvisCore", listing)
+
+        del_res = delete_project_context(self.mock_memory, "JarvisCore", confirm=True)
+        self.assertIn("deleted", del_res)
+
+
+class TestScheduledRoutines(unittest.TestCase):
+    def setUp(self):
+        self.mock_memory = MagicMock()
+        self.test_dir = tempfile.mkdtemp(prefix="rusty_sched_")
+        from pathlib import Path
+        self.patcher = patch("vyra.skills.scheduler.SCHEDULE_STORE", Path(self.test_dir) / "schedules.json")
+        self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
+        if os.path.exists(self.test_dir):
+            shutil.rmtree(self.test_dir)
+
+    def test_schedule_and_cancel_routine(self):
+        from vyra.skills.scheduler import (
+            cancel_scheduled_routine,
+            list_scheduled_routines,
+            schedule_routine,
+        )
+        res = schedule_routine(self.mock_memory, routine_name="start my day", trigger_time="08:00")
+        self.assertIn("Scheduled routine", res)
+        self.assertIn("start my day", res)
+        sched_id = res.split("`")[1]
+
+        listing = list_scheduled_routines(self.mock_memory)
+        self.assertIn(sched_id, listing)
+        self.assertIn("08:00", listing)
+
+        cancel_res = cancel_scheduled_routine(self.mock_memory, sched_id, confirm=True)
+        self.assertIn("cancelled", cancel_res)
+
+
 if __name__ == "__main__":
     unittest.main()
