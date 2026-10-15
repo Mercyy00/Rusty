@@ -419,10 +419,11 @@ async def run_conversational_followup_loop(loop, mute: bool = False):
                 lambda: V.record_until_silence(
                     push_to_talk=True,
                     initial_timeout=14.0,  # 14s patient window for follow-up
-                    trail_silence=0.9,     # 1.6s natural pause tolerance
+                    trail_silence=V.DEFAULT_TRAIL_SILENCE,  # Patient human pause tolerance
                     stop_event=stop_ev,
                     level_callback=on_meter,
                 ),
+
             )
 
         if follow_audio is None:
@@ -518,11 +519,12 @@ async def handle_voice_listen(request):
                 None,
                 lambda: V.record_until_silence(
                     push_to_talk=True,
-                    initial_timeout=12.0,
-                    trail_silence=0.9,
+                    initial_timeout=14.0,
+                    trail_silence=V.DEFAULT_TRAIL_SILENCE,
                     stop_event=stop_event,
                     level_callback=on_audio_level,
                 ),
+
             )
     finally:
         active_stop_event = None
@@ -654,11 +656,12 @@ async def process_wake_event(phrase: str, cmd: str):
                     None,
                     lambda: V.record_until_silence(
                         push_to_talk=True,
-                        initial_timeout=12.0,
-                        trail_silence=0.9,
+                        initial_timeout=14.0,
+                        trail_silence=V.DEFAULT_TRAIL_SILENCE,
                         stop_event=stop_ev,
                         level_callback=on_meter,
                     ),
+
                 )
 
             if follow_audio is None:

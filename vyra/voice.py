@@ -24,10 +24,11 @@ SAMPLE_RATE = 16000
 BLOCK = 800                   # 0.05s (50ms) audio blocks
 DEFAULT_START_RMS = 0.006     # Speech start detection threshold
 DEFAULT_SILENCE_RMS = 0.0035  # Trailing silence threshold
-DEFAULT_INITIAL_TIMEOUT = 10.0 # Allow up to 10s for speaker to begin talking
-DEFAULT_TRAIL_SILENCE = 1.25   # 1250ms trailing silence allows natural Indian pauses
-DEFAULT_MAX_SECONDS = 40.0    # Utterance hard limit
-PRE_BUFFER_BLOCKS = 14        # 700ms pre-speech audio buffer so onset words are never clipped
+DEFAULT_INITIAL_TIMEOUT = 12.0 # Allow up to 12s for speaker to begin talking
+DEFAULT_TRAIL_SILENCE = 1.8   # 1800ms trailing silence allows natural human pauses and thinking
+DEFAULT_MAX_SECONDS = 45.0    # Utterance hard limit
+PRE_BUFFER_BLOCKS = 16        # 800ms pre-speech audio buffer so onset words are never clipped
+
 
 
 def _rms(block: np.ndarray) -> float:
@@ -117,8 +118,13 @@ def record_until_silence(
             else:
                 silent_for = 0.0
 
-            if silent_for >= trail_silence or time.time() - start > max_seconds:
+            # Adaptive patience: while utterance is brief (<1.5s speech), allow extra thinking pause (up to 2.2s)
+            active_duration = len(frames) * (BLOCK / SAMPLE_RATE)
+            effective_trail = max(trail_silence, 2.2) if active_duration < 1.5 else trail_silence
+
+            if silent_for >= effective_trail or time.time() - start > max_seconds:
                 break
+
 
     if has_spoken and frames:
         concatenated = np.concatenate(frames)
@@ -333,10 +339,80 @@ class _PiperEngine:
             pass
 
 
+def extract_spoken_summary(text: str, max_sentences: int = 2, max_words: int = 40) -> str:
+    """Extract a crisp, punchy spoken summary from any multi-line, list-heavy, or code response.
+
+    Ensures Rusty speaks only the critical takeaway/answer rather than reading
+    10 lines of lists, markdown tables, or code blocks out loud.
+    """
+    if not text or not text.strip():
+        return ""
+
+    # 1. Handle code blocks: strip them out of spoken audio
+    has_code = "```" in text
+    text_without_code = re.sub(r"```[\s\S]*?```", "", text).strip()
+    if not text_without_code and has_code:
+        return "I've generated the code for you on screen, Sir."
+
+    raw = text_without_code if text_without_code else text
+
+    # 2. Clean out list formatting, headers, markdown tables
+    cleaned_lines = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        # Remove bullet and numbered list markers
+        line = re.sub(r"^[-*•]\s+", "", line)
+        line = re.sub(r"^\d+\.\s+", "", line)
+        # Skip markdown table rows or horizontal rules
+        if line.startswith("|") or line.startswith("---") or line.startswith("==="):
+            continue
+        # Strip markdown header hashes
+        if line.startswith("#"):
+            line = line.lstrip("#").strip()
+        cleaned_lines.append(line)
+
+    combined = " ".join(cleaned_lines)
+    # Strip markdown symbols and URLs
+    combined = re.sub(r"[*_`#~]", "", combined)
+    combined = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", combined)
+    combined = re.sub(r"https?://\S+", "", combined)
+    combined = re.sub(r"\s+", " ", combined).strip()
+
+    if not combined:
+        return "Done, Sir."
+
+    # If it is already short enough, return directly
+    if len(combined) <= 120 and "\n" not in text:
+        return combined
+
+    # 3. Extract first 1-2 complete sentences
+    sentences = re.split(r"(?<=[.!?।])\s+", combined)
+    chosen = []
+    word_count = 0
+    for s in sentences:
+        s = s.strip()
+        if not s:
+            continue
+        words = s.split()
+        if not chosen or (len(chosen) < max_sentences and word_count + len(words) <= max_words):
+            chosen.append(s)
+            word_count += len(words)
+        else:
+            break
+
+    summary = " ".join(chosen).strip()
+    if not summary:
+        summary = combined[:120].strip() + "."
+    return summary
+
+
 class Mouth:
     """Text-to-speech with Edge-TTS (free) + pygame playback.
     Streams long replies sentence-by-sentence so speech starts sooner, adds light
     emotional prosody, and switches to a Hindi voice for Devanagari text."""
+
 
     def __init__(self, voice: str = "en-US-GuyNeural", rate: str = "+19%",
                  pronounce_vyra: str = "Rusty", voice_hindi: str | None = None,
@@ -381,8 +457,18 @@ class Mouth:
         except Exception:
             pass
 
-    def speak(self, text: str):
-        clean_text = self._prepare_text(text)
+    def speak(self, text: str, concise: bool = True):
+        """Speak text aloud using Edge-TTS or Piper.
+        
+        When concise=True, automatically distills long responses (multi-line, lists, code)
+        into a punchy 1-2 sentence spoken answer so Rusty never reads 10 lines of text out loud.
+        """
+        if concise and (len(text) > 130 or "\n" in text or "```" in text):
+            to_speak = extract_spoken_summary(text)
+        else:
+            to_speak = text
+
+        clean_text = self._prepare_text(to_speak)
         if not clean_text:
             return
         with self._lock:
@@ -396,6 +482,7 @@ class Mouth:
                 if self._speak_piper(clean_text):
                     return
             self._speak_edge(clean_text, self.voice)
+
 
     def _speak_piper(self, text: str) -> bool:
         ts = int(time.time() * 1000)

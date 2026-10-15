@@ -46,6 +46,31 @@ from .antigravity_app import (
     ag_stop_agent,
     ag_wait_for_agent,
 )
+from .skills_manager import (
+    CUSTOM_SKILL_TOOLS,
+    create_custom_skill,
+    delete_custom_skill,
+    list_custom_skills,
+    read_custom_skill,
+)
+from .mcp_client import (
+    MCP_SKILLS,
+    mcp_add_server,
+    mcp_call_tool,
+    mcp_list_servers,
+    mcp_list_tools,
+)
+from .computer_use import (
+    COMPUTER_USE_SKILLS,
+    cu_click_app,
+    cu_focus_app,
+    cu_inspect_app,
+    cu_press_key_in_app,
+    cu_screenshot_app,
+    cu_scroll_app,
+    cu_type_in_app,
+)
+
 from .assistant import (
     ASSISTANT_SKILLS,
     audit_action_history,
@@ -193,7 +218,11 @@ SKILLS: list[dict] = (
     + ASSISTANT_SKILLS
     + OFFICE_SKILLS
     + ANTIGRAVITY_SKILLS
+    + CUSTOM_SKILL_TOOLS
+    + MCP_SKILLS
+    + COMPUTER_USE_SKILLS
 )
+
 
 
 _BY_NAME = {s["name"]: s for s in SKILLS}
@@ -344,6 +373,25 @@ __all__ = [
     "ag_fix_failing_tests",
     "ag_review_changes",
     "ag_selftest",
+    # Custom Skills (Claude-Desktop SKILL.md format)
+    "list_custom_skills",
+    "read_custom_skill",
+    "create_custom_skill",
+    "delete_custom_skill",
+    # Model Context Protocol (MCP) Client
+    "mcp_list_servers",
+    "mcp_list_tools",
+    "mcp_call_tool",
+    "mcp_add_server",
+    # Computer Use & AppProfile
+    "cu_focus_app",
+    "cu_screenshot_app",
+    "cu_click_app",
+    "cu_type_in_app",
+    "cu_press_key_in_app",
+    "cu_scroll_app",
+    "cu_inspect_app",
 ]
+
 
 
