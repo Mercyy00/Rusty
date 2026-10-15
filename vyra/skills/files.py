@@ -273,6 +273,82 @@ def empty_recycle_bin(memory) -> str:
     return f"Could not empty Recycle Bin: {res.stderr.strip()}"
 
 
+IGNORED_TREE_DIRS = {
+    ".git", "node_modules", "__pycache__", ".venv", "venv", "env",
+    ".pytest_cache", ".idea", ".vscode", "dist", "build", ".egg-info"
+}
+
+
+def read_file_tree(memory, folder: str = "", max_depth: int = 3) -> str:
+    """Generate a clean ASCII directory tree map of a project folder."""
+    from .common import ROOT
+    target_dir = _resolve_path(folder) if folder else ROOT
+    if not os.path.exists(target_dir):
+        return f"Folder not found: {target_dir}, Sir."
+    if not os.path.isdir(target_dir):
+        return f"'{target_dir}' is a file, not a directory."
+
+    lines = [f"Directory tree of {os.path.basename(target_dir) or target_dir}:"]
+
+    def _walk(current: str, prefix: str, depth: int):
+        if depth > max_depth:
+            return
+        try:
+            entries = sorted(os.listdir(current))
+        except Exception:
+            return
+
+        entries = [e for e in entries if e not in IGNORED_TREE_DIRS and not e.startswith(".")]
+        for i, entry in enumerate(entries):
+            is_last = (i == len(entries) - 1)
+            connector = "└── " if is_last else "├── "
+            full_path = os.path.join(current, entry)
+            is_dir = os.path.isdir(full_path)
+            lines.append(f"{prefix}{connector}{entry}{'/' if is_dir else ''}")
+            if is_dir:
+                next_prefix = prefix + ("    " if is_last else "│   ")
+                _walk(full_path, next_prefix, depth + 1)
+
+    _walk(target_dir, "", 1)
+    if len(lines) > 60:
+        lines = lines[:60] + ["  ... (truncated for brevity)"]
+    return "\n".join(lines)
+
+
+def summarize_document(memory, path: str) -> str:
+    """Read a document (PDF, Word, presentation, text, or code) and generate an executive summary."""
+    content = read_file(memory, path, max_chars=5000)
+    if not content or content.startswith(("Error", "Access denied", "There's no file")):
+        return content
+
+    fn = os.path.basename(path)
+    from .media import _VISION_CONFIG
+    cfg = _VISION_CONFIG
+    if not cfg:
+        try:
+            from ..config import load_config
+            cfg = load_config().get("llm")
+        except Exception:
+            cfg = None
+
+    if cfg and cfg.get("api_key"):
+        try:
+            from ..llm import make_client
+            client = make_client({"llm": cfg})
+            prompt = (
+                f"Document: {fn}\n\nContent:\n{content[:4000]}\n\n"
+                "Provide a clear, 3-5 bullet point executive summary highlighting key takeaways, findings, and action items."
+            )
+            resp = client.complete("You are an expert technical advisor. Summarize clearly and objectively.", [{"role": "user", "content": prompt}], [])
+            if resp.text:
+                return f"Executive Summary of {fn}:\n\n" + resp.text.strip()
+        except Exception:
+            pass
+
+    preview = content[:600] + ("..." if len(content) > 600 else "")
+    return f"Key extract from {fn}:\n\n{preview}"
+
+
 FILE_SKILLS = [
     {"name": "write_file", "fn": write_file, "description": "Create or write content to a text or code file on Jay's computer.",
      "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "File path (relative or absolute)"}, "content": {"type": "string", "description": "Text or code content to write"}}, "required": ["path", "content"]}},
@@ -292,4 +368,8 @@ FILE_SKILLS = [
      "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "Folder path or shortcut (default: downloads)"}}, "required": []}},
     {"name": "empty_recycle_bin", "fn": empty_recycle_bin, "description": "Empty the Windows Recycle Bin.",
      "parameters": {"type": "object", "properties": {}, "required": []}},
+    {"name": "read_file_tree", "fn": read_file_tree, "description": "Generate an ASCII directory tree diagram of any project folder or current workspace, ignoring virtualenvs and build files.",
+     "parameters": {"type": "object", "properties": {"folder": {"type": "string", "description": "Folder path to inspect (defaults to current project root)"}, "max_depth": {"type": "integer", "description": "Maximum folder depth (default 3)"}}, "required": []}},
+    {"name": "summarize_document", "fn": summarize_document, "description": "Read and produce an executive summary with key takeaways from any PDF, Word document, PowerPoint presentation, code file, or text document on the PC.",
+     "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "Path or filename of the document to summarize"}}, "required": ["path"]}},
 ]

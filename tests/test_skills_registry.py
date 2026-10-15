@@ -8,14 +8,22 @@ from vyra import skills
 
 class TestSkillsRegistry(unittest.TestCase):
     def test_total_skills_count(self):
-        """Verify exactly 81 skills are registered across all modular categories."""
-        self.assertEqual(len(skills.SKILLS), 81)
+        """Verify exactly 88 skills are registered across all modular categories."""
+        self.assertEqual(len(skills.SKILLS), 88)
         self.assertIn("search_memory", skills._BY_NAME)
         self.assertIn("real_web_search", skills._BY_NAME)
         self.assertIn("check_weather", skills._BY_NAME)
         self.assertIn("check_stock_crypto", skills._BY_NAME)
         self.assertIn("news_briefing", skills._BY_NAME)
         self.assertIn("summarize_webpage", skills._BY_NAME)
+        # Power tools and diagnostics
+        self.assertIn("kill_port", skills._BY_NAME)
+        self.assertIn("network_diagnostics", skills._BY_NAME)
+        self.assertIn("emergency_lockdown", skills._BY_NAME)
+        self.assertIn("read_file_tree", skills._BY_NAME)
+        self.assertIn("summarize_document", skills._BY_NAME)
+        self.assertIn("git_repo_status", skills._BY_NAME)
+        self.assertIn("audit_action_history", skills._BY_NAME)
 
     def test_no_duplicate_skill_names(self):
         """Verify all skill names are globally unique."""

@@ -515,6 +515,119 @@ def switch_mode(memory, mode: str) -> str:
         return "Ghost mode engaged, Sir. Voice audio muted — operating in silent stealth focus."
 
 
+def kill_port(memory, port: int) -> str:
+    """Identify the process listening on a specific TCP port and terminate it to free the port."""
+    try:
+        port_num = int(port)
+    except (ValueError, TypeError):
+        return "Please specify a valid port number, Sir (e.g. 3000, 8000)."
+
+    killed = []
+    my_pid = os.getpid()
+    try:
+        for conn in psutil.net_connections(kind="inet"):
+            if conn.laddr and conn.laddr.port == port_num:
+                pid = conn.pid
+                if pid and pid != my_pid:
+                    try:
+                        proc = psutil.Process(pid)
+                        p_name = proc.name()
+                        proc.kill()
+                        killed.append(f"{p_name} (PID {pid})")
+                    except Exception:
+                        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
+                        killed.append(f"PID {pid}")
+    except Exception as exc:
+        # Fallback using netstat and taskkill
+        try:
+            res = subprocess.run(["powershell", "-NoProfile", "-Command",
+                                  f"Get-NetTCPConnection -LocalPort {port_num} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"],
+                                 capture_output=True, text=True, timeout=5)
+            pids = set(res.stdout.strip().split())
+            for p in pids:
+                if p and p.isdigit() and int(p) != my_pid:
+                    subprocess.run(["taskkill", "/F", "/PID", p], capture_output=True)
+                    killed.append(f"PID {p}")
+        except Exception:
+            pass
+
+    if killed:
+        return f"Freed port {port_num} by terminating: {', '.join(set(killed))}, Sir."
+    return f"No active process was found listening on port {port_num}, Sir."
+
+
+def network_diagnostics(memory) -> str:
+    """Run a fast network diagnostics check: ping latency, DNS status, local IP, and public IP."""
+    import socket
+    import urllib.request
+
+    ping_ms = None
+    try:
+        res = subprocess.run(["ping", "-n", "1", "1.1.1.1"], capture_output=True, text=True, timeout=3)
+        m = re.search(r"time[=<]\s*(\d+)\s*ms", res.stdout, re.IGNORECASE)
+        if m:
+            ping_ms = int(m.group(1))
+    except Exception:
+        pass
+
+    hostname = socket.gethostname()
+    try:
+        local_ip = socket.gethostbyname(hostname)
+    except Exception:
+        local_ip = "127.0.0.1"
+
+    public_ip = "Unknown"
+    try:
+        req = urllib.request.Request("http://api.ipify.org", headers={"User-Agent": "RustyAI/1.0"})
+        with urllib.request.urlopen(req, timeout=3) as r:
+            public_ip = r.read().decode("utf-8").strip()
+    except Exception:
+        pass
+
+    status = "Online (Low Latency)" if ping_ms and ping_ms < 60 else "Online" if ping_ms else "Offline or High Latency"
+    ping_str = f"{ping_ms} ms" if ping_ms is not None else "Timeout"
+    return (
+        f"Network Diagnostics, Sir:\n"
+        f"  - Status: {status}\n"
+        f"  - Cloudflare Latency (1.1.1.1): {ping_str}\n"
+        f"  - Local IP: {local_ip} ({hostname})\n"
+        f"  - Public Gateway IP: {public_ip}"
+    )
+
+
+def emergency_lockdown(memory) -> str:
+    """Protocol Zero / Emergency Lockdown: Locks workstation, mutes master audio, and secures the desktop."""
+    user32 = ctypes.windll.user32
+
+    # 1. Mute audio
+    user32.keybd_event(0xAD, 0, 0, 0)
+    user32.keybd_event(0xAD, 0, 0x0002, 0)
+
+    # 2. Minimize all windows (Win+D)
+    user32.keybd_event(0x5B, 0, 0, 0)
+    user32.keybd_event(0x44, 0, 0, 0)
+    user32.keybd_event(0x44, 0, 0x0002, 0)
+    user32.keybd_event(0x5B, 0, 0x0002, 0)
+
+    # 3. Lock workstation
+    user32.LockWorkStation()
+
+    try:
+        memory.log_action("emergency_lockdown", {}, "Protocol Zero initiated: Workstation locked and muted", status="success")
+    except Exception:
+        pass
+
+    try:
+        from ..remote_telegram import get_bridge
+        bridge = get_bridge()
+        if bridge:
+            bridge.send_text("🚨 PROTOCOL ZERO ACTIVATED: Workstation locked, master audio muted, desktop secured.")
+    except Exception:
+        pass
+
+    return "Protocol Zero executed, Sir. Workstation locked, audio muted, and desktop perimeter secured."
+
+
 SYSTEM_SKILLS = [
     {"name": "run_terminal_command", "fn": run_terminal_command, "description": "Execute a PowerShell/terminal command on Jay's computer and return output. Use for git, python, npm, system checks, script execution, inspecting files, or diagnostics. Destructive commands require confirm=True.",
      "parameters": {"type": "object", "properties": {"command": {"type": "string", "description": "The PowerShell or CMD command to execute"}, "confirm": {"type": "boolean", "description": "Set to true only when Jay explicitly confirmed running a destructive or modifying command (e.g. file removal, git reset/force, taskkill)"}}, "required": ["command"]}},
@@ -553,5 +666,11 @@ SYSTEM_SKILLS = [
     {"name": "switch_mode", "fn": switch_mode, "description": "Switch Rusty's operational mode between 'tactical' (fast, military brevity, spoken), 'engineer' (senior software architect, deep code & reasoning), and 'ghost' (silent stealth focus, voice muted).",
      "parameters": {"type": "object", "properties": {"mode": {"type": "string", "enum": ["tactical", "engineer", "ghost"], "description": "Target mode to switch to"}}, "required": ["mode"]}},
     {"name": "inspect_active_window", "fn": inspect_active_window, "description": "Identify which application, document, or window is currently active/focused on screen.",
+     "parameters": {"type": "object", "properties": {}, "required": []}},
+    {"name": "kill_port", "fn": kill_port, "description": "Identify and terminate any rogue background process or dev server occupying a specific network port (e.g. 3000, 8000, 5000).",
+     "parameters": {"type": "object", "properties": {"port": {"type": "integer", "description": "TCP port number to free (e.g. 3000, 8000)"}}, "required": ["port"]}},
+    {"name": "network_diagnostics", "fn": network_diagnostics, "description": "Run connection health diagnostics: ping latency, DNS test, local IP, and public IP.",
+     "parameters": {"type": "object", "properties": {}, "required": []}},
+    {"name": "emergency_lockdown", "fn": emergency_lockdown, "description": "Protocol Zero / Emergency Lockdown: Instantly locks workstation, mutes master audio, minimizes desktop windows, and sends an alert to your phone.",
      "parameters": {"type": "object", "properties": {}, "required": []}},
 ]

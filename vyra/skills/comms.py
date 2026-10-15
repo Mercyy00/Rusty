@@ -181,6 +181,46 @@ def github(memory, command: str, confirm: bool = False) -> str:
         return f"GitHub command failed, Sir: {exc}"
 
 
+def git_repo_status(memory, path: str = "") -> str:
+    """Inspect the status of a local Git repository: branch, dirty files, unpushed commits, and recent log."""
+    from .common import ROOT, _resolve_path
+    repo_dir = _resolve_path(path) if path else ROOT
+    if not os.path.exists(repo_dir):
+        return f"Directory not found: {repo_dir}, Sir."
+
+    try:
+        check = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=repo_dir, capture_output=True, text=True)
+        if check.returncode != 0:
+            return f"'{os.path.basename(repo_dir)}' is not a Git repository, Sir."
+
+        branch = subprocess.run(["git", "branch", "--show-current"], cwd=repo_dir, capture_output=True, text=True).stdout.strip() or "HEAD (detached)"
+        status_res = subprocess.run(["git", "status", "--short"], cwd=repo_dir, capture_output=True, text=True).stdout.strip()
+        changed_count = len(status_res.splitlines()) if status_res else 0
+
+        ahead_behind = ""
+        try:
+            ab_res = subprocess.run(["git", "rev-list", "--left-right", "--count", f"origin/{branch}...{branch}"], cwd=repo_dir, capture_output=True, text=True)
+            if ab_res.returncode == 0:
+                parts = ab_res.stdout.strip().split()
+                if len(parts) == 2:
+                    behind, ahead = parts[0], parts[1]
+                    ahead_behind = f" (Ahead: {ahead}, Behind: {behind})"
+        except Exception:
+            pass
+
+        log_res = subprocess.run(["git", "log", "-n", "3", "--oneline"], cwd=repo_dir, capture_output=True, text=True).stdout.strip()
+        recent_lines = [f"    {l}" for l in log_res.splitlines()] if log_res else ["    (no commits yet)"]
+
+        return (
+            f"Git Dashboard for {os.path.basename(repo_dir)}:\n"
+            f"  - Active Branch: {branch}{ahead_behind}\n"
+            f"  - Working Tree: {f'{changed_count} modified/untracked file(s)' if changed_count else 'Clean'}\n"
+            f"  - Recent Commits:\n" + "\n".join(recent_lines)
+        )
+    except Exception as exc:
+        return f"Unable to inspect Git repository: {exc}"
+
+
 COMMS_SKILLS = [
     {"name": "send_whatsapp_message", "fn": send_whatsapp_message, "description": "Send a WhatsApp TEXT message. Use ONLY when Jay explicitly says 'WhatsApp'. Text only — it cannot attach files. If no number is given it goes to Jay's own number. To send a FILE to his phone, do NOT use this — use send_file_to_phone.",
      "parameters": {"type": "object", "properties": {"phone": {"type": "string", "description": "Optional phone number with country code; leave empty to message Jay himself"}, "message": {"type": "string", "description": "Message text to send"}}, "required": ["message"]}},
@@ -192,4 +232,6 @@ COMMS_SKILLS = [
      "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "File or folder to back up (path or shortcut like 'downloads', 'documents', or the project folder)"}}, "required": ["path"]}},
     {"name": "github", "fn": github, "description": "Manage Jay's GitHub via the gh CLI. Pass the gh subcommand WITHOUT 'gh' — e.g. 'repo list', 'repo create myapp --private', 'issue create -R owner/repo -t Title -b Body', 'pr list', 'api user'. Use for anything GitHub.",
      "parameters": {"type": "object", "properties": {"command": {"type": "string", "description": "The gh subcommand, e.g. 'repo list --limit 10'"}, "confirm": {"type": "boolean", "description": "Set true to run a destructive command (delete/archive)"}}, "required": ["command"]}},
+    {"name": "git_repo_status", "fn": git_repo_status, "description": "Inspect the status of a local Git repository: active branch, uncommitted/modified files, unpushed commits, and recent commit log.",
+     "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "Project directory path to inspect (defaults to current project root)"}}, "required": []}},
 ]

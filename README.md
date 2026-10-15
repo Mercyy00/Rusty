@@ -13,14 +13,15 @@ JARVIS/
 ├── main.py                     # Interactive terminal REPL
 ├── config.json                 # Core system configuration
 ├── requirements.txt            # Dependency specification
-├── tests/                      # Automated test suite (56 unit tests)
+├── tests/                      # Automated test suite (66 unit tests)
 │   ├── test_config.py          # Config merging and validation
 │   ├── test_security.py        # Sandbox & credential protection gates
 │   ├── test_memory.py          # Persistent memory and journal tests
 │   ├── test_database.py        # SQLite, FTS5 full-text & vector tests
 │   ├── test_semantic_memory.py # Vector recall & dynamic context tests
-│   ├── test_skills_registry.py # 81-skill schema and integrity tests
+│   ├── test_skills_registry.py # 88-skill schema and integrity tests
 │   ├── test_skills_browser.py  # Web intelligence, search, weather & stocks
+│   ├── test_skills_power_tools.py # Developer tools, diagnostics, and Protocol Zero
 │   └── test_skills_system.py   # System automation and file tests
 ├── vyra/
 │   ├── brain.py                # ReAct think-act loop & multi-hop tool execution
@@ -34,7 +35,7 @@ JARVIS/
 │   ├── remote_telegram.py      # Encrypted Telegram bot gateway (voice + commands)
 │   ├── voice.py                # Local Faster-Whisper ASR + Neural Edge-TTS engine
 │   ├── wake.py                 # Continuous passive wake word detection
-│   └── skills/                 # Modular 81-Skill Dispatcher
+│   └── skills/                 # Modular 88-Skill Dispatcher
 │       ├── common.py           # Path resolution, security validation, Win32 desktop API
 │       ├── system.py           # Terminal, window management, volume, hotkeys, input
 │       ├── files.py            # File I/O, search, listing, and safe recycling
@@ -48,7 +49,7 @@ JARVIS/
 
 ---
 
-## Core Capabilities (81 Registered Skills)
+## Core Capabilities (88 Registered Skills)
 
 1. **Hybrid Semantic Memory Engine (SQLite + Vector Embeddings)**:
    - Embedded SQLite storage running in Write-Ahead Logging (`WAL`) mode with foreign keys.
@@ -67,18 +68,26 @@ JARVIS/
    - `check_stock_crypto`: Live quotes, currency conversions (USD/INR), and 24h percentage changes for stocks and cryptocurrencies via Yahoo Finance and CoinGecko.
    - `news_briefing`: Fetches top technology, world, or business headlines from HackerNews and BBC RSS feeds.
    - `summarize_webpage`: Extracts readable article text from any URL and generates structured executive summaries.
-4. **Voice & Hearing Pipeline**:
+4. **Developer Power Tools, Diagnostics & Emergency Security**:
+   - `kill_port`: Instantly frees port 3000, 8000, etc. by identifying and terminating rogue background dev servers.
+   - `network_diagnostics`: High-speed network connection check (ping latency to Cloudflare 1.1.1.1, local IP, and public gateway IP).
+   - `emergency_lockdown` (**Protocol Zero**): Instantly locks workstation, mutes master audio, minimizes desktop windows, logs the security event, and alerts your phone via Telegram.
+   - `read_file_tree`: Generates clean ASCII project folder trees while automatically ignoring build artifacts, git internals, and virtual environments.
+   - `summarize_document`: Reads and extracts an executive summary from any PDF, Word, presentation, or code file.
+   - `git_repo_status`: Inspects active branch, ahead/behind commit counts, dirty files, and recent commit history.
+   - `audit_action_history`: Queries recent tool executions with duration in milliseconds directly from SQLite.
+5. **Voice & Hearing Pipeline**:
    - Local, privacy-first transcription with **Faster-Whisper** (`small` model on NVIDIA CUDA with CPU fallback).
    - High-fidelity neural voice synthesis via Microsoft Edge-TTS with multi-lingual auto-switching (English + Hindi `hi-IN-MadhurNeural`).
    - Non-blocking continuous wake-word monitoring (`"Rusty"`, `"Friday"`, `"Jarvis"`).
-5. **Tactical Holographic HUD (Stark Industries Interface)**:
+6. **Tactical Holographic HUD (Stark Industries Interface)**:
    - High-FPS canvas-based Arc Reactor core, real-time audio spectrum, and live hardware telemetry (CPU, RAM, GPU, battery, ping).
    - Borderless desktop PiP application or browser view with real-time spoken and visual task progress updates.
-6. **Hardware & Desktop Automation**:
+7. **Hardware & Desktop Automation**:
    - Win32 window enumeration, smart tab closing (`Ctrl+W`), process management, master volume control, screen brightness, and lock/sleep triggers.
-7. **Autonomous Office & Document Generation**:
+8. **Autonomous Office & Document Generation**:
    - Generates fully populated, styled Word documents (`.docx`), presentation decks (`.pptx`), Excel sheets (`.xlsx`), and clean formatted PDFs (`reportlab`) with live progress reporting.
-8. **Secure Remote Gateway (Phone Control)**:
+9. **Secure Remote Gateway (Phone Control)**:
    - Control your PC from anywhere in the world via Telegram with constant-time HMAC authentication, rate-limiting, and 15-minute brute-force lockout.
    - Send files from PC to phone with a single voice directive.
 

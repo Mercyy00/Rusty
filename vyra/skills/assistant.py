@@ -61,6 +61,25 @@ def search_memory(memory, query: str) -> str:
         return f"Memory recall failed: {exc}"
 
 
+def audit_action_history(memory, limit: int = 10) -> str:
+    """Retrieve the recent actions, skills, and tools executed by Rusty with execution timings."""
+    try:
+        actions = memory.get_recent_actions(limit=limit)
+        if not actions:
+            return "No recent system actions recorded in the audit log, Sir."
+        lines = [f"Recent Action Audit Log (last {len(actions)} events):"]
+        for a in actions:
+            ts = a.get("timestamp", "").split("T")[-1][:8]
+            skill = a.get("skill_name", "unknown")
+            res_preview = a.get("result", "")[:60].replace("\n", " ").strip()
+            ms = a.get("duration_ms", 0.0)
+            status = a.get("status", "success")
+            lines.append(f"  - [{ts}] {skill} ({status}, {ms:.1f}ms) -> {res_preview}")
+        return "\n".join(lines)
+    except Exception as exc:
+        return f"Could not read action audit log: {exc}"
+
+
 def read_clipboard(memory) -> str:
     """Read the current text content copied to the Windows clipboard."""
     try:
@@ -242,6 +261,8 @@ ASSISTANT_SKILLS = [
      "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "Search text to identify the note to delete"}}, "required": ["query"]}},
     {"name": "search_memory", "fn": search_memory, "description": "Search long-term memories, notes, facts, and past conversations using semantic search and keywords.",
      "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "Search topic, question, or keyword to retrieve from memory"}}, "required": ["query"]}},
+    {"name": "audit_action_history", "fn": audit_action_history, "description": "Retrieve the recent actions, skills, and tools executed by Rusty with execution timings from the audit log.",
+     "parameters": {"type": "object", "properties": {"limit": {"type": "integer", "description": "Number of recent events to retrieve (default 10)"}}, "required": []}},
     {"name": "read_clipboard", "fn": read_clipboard, "description": "Read text currently copied to the Windows clipboard.",
      "parameters": {"type": "object", "properties": {}, "required": []}},
     {"name": "write_clipboard", "fn": write_clipboard, "description": "Copy specified text to the Windows clipboard.",

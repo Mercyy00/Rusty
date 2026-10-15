@@ -17,6 +17,7 @@ import inspect
 from .. import office_skills as _office
 from .assistant import (
     ASSISTANT_SKILLS,
+    audit_action_history,
     cancel_reminder,
     daily_briefing,
     deep_think,
@@ -70,6 +71,7 @@ from .common import (
 from .comms import (
     COMMS_SKILLS,
     backup_to_drive,
+    git_repo_status,
     github,
     mobile_phone_gateway,
     send_file_to_phone,
@@ -84,7 +86,9 @@ from .files import (
     open_file,
     open_folder,
     read_file,
+    read_file_tree,
     search_files,
+    summarize_document,
     write_file,
 )
 from .media import (
@@ -108,11 +112,14 @@ from .system import (
     close_active_window,
     close_app,
     close_other_windows,
+    emergency_lockdown,
     get_battery_status,
     get_system_info,
     inspect_active_window,
+    kill_port,
     list_running_apps,
     lock_pc,
+    network_diagnostics,
     open_app,
     press_hotkey,
     run_terminal_command,
@@ -201,6 +208,9 @@ __all__ = [
     "close_active_window",
     "list_running_apps",
     "inspect_active_window",
+    "kill_port",
+    "network_diagnostics",
+    "emergency_lockdown",
     "volume_up",
     "volume_down",
     "volume_mute",
@@ -215,6 +225,8 @@ __all__ = [
     "search_files",
     "open_folder",
     "read_file",
+    "read_file_tree",
+    "summarize_document",
     "open_file",
     "delete_file",
     "delete_folder",
@@ -248,6 +260,7 @@ __all__ = [
     "mobile_phone_gateway",
     "send_file_to_phone",
     "backup_to_drive",
+    "git_repo_status",
     "github",
     # Assistant
     "remember",
@@ -257,6 +270,7 @@ __all__ = [
     "list_notes",
     "delete_note",
     "search_memory",
+    "audit_action_history",
     "read_clipboard",
     "write_clipboard",
     "set_reminder",
@@ -269,3 +283,4 @@ __all__ = [
     "deep_think",
     "get_datetime",
 ]
+
