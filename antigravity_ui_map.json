@@ -10,6 +10,11 @@
     "D:\\engineers\\Antigravity\\bin\\antigravity.CMD",
     "antigravity"
   ],
+  "agy_cli_paths": [
+    "C:\\Users\\Perfect\\.gemini\\antigravity\\bin\\agy.cmd",
+    "C:\\Users\\Perfect\\AppData\\Roaming\\Antigravity\\bin\\agy.cmd",
+    "agy"
+  ],
   "data_paths": {
     "app_data": "C:\\Users\\Perfect\\.gemini\\antigravity",
     "conversations_db": "C:\\Users\\Perfect\\.gemini\\antigravity\\conversation_summaries.db",

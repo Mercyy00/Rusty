@@ -25,6 +25,7 @@ from .antigravity_app import (
     ag_focus,
     ag_install_extension,
     ag_launch,
+    ag_cli_launch,
     ag_list_extensions,
     ag_list_open_tabs,
     ag_list_pending_approvals,
@@ -125,6 +126,13 @@ from .assistant import (
 )
 from .browser import (
     BROWSER_SKILLS,
+    browser_click,
+    browser_close,
+    browser_eval_js,
+    browser_open,
+    browser_read_page,
+    browser_scroll,
+    browser_type,
     check_stock_crypto,
     check_weather,
     close_browser_tab,
@@ -330,6 +338,13 @@ __all__ = [
     "list_folder",
     "empty_recycle_bin",
     # Browser
+    "browser_open",
+    "browser_click",
+    "browser_type",
+    "browser_read_page",
+    "browser_scroll",
+    "browser_eval_js",
+    "browser_close",
     "real_web_search",
     "check_weather",
     "check_stock_crypto",
@@ -381,6 +396,7 @@ __all__ = [
     "get_datetime",
     # Antigravity App Control
     "ag_launch",
+    "ag_cli_launch",
     "ag_status",
     "ag_focus",
     "ag_new_window",

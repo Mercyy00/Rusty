@@ -375,9 +375,40 @@ _CONTROLLER = AntigravityController()
 # ---------------------------------------------------------------------------
 
 def ag_launch(memory, workspace: str = "", new_window: bool = False) -> str:
-    """Launch the Antigravity IDE application or open a specific project folder."""
+    """Launch the visual Antigravity IDE (VS Code based visual development environment and code editor) or open a specific project folder in the IDE.
+    Use when Jay asks for 'Antigravity IDE', 'AG IDE', or the Antigravity editor.
+    DO NOT confuse with the terminal CLI 'agy' (use ag_cli_launch for CLI).
+    """
     res = _CONTROLLER.launch(workspace=workspace, new_window=new_window)
     return res["observed"]
+
+
+def ag_cli_launch(memory, command: str = "", workspace: str = "") -> str:
+    """Launch the Antigravity CLI ('agy' terminal/console interface) in an interactive terminal window.
+    Use when Jay asks for 'Antigravity CLI', 'AG CLI', or 'agy'.
+    DO NOT use this for opening the graphical code editor (use ag_launch for that).
+    """
+    target_dir = _resolve_path(workspace) if workspace else os.getcwd()
+    if not os.path.isdir(target_dir):
+        target_dir = os.getcwd()
+
+    sub = command.strip() if command else ""
+    try:
+        if sub:
+            pwsh_script = f"Set-Location '{target_dir}'; agy {sub}"
+        else:
+            pwsh_script = f"Set-Location '{target_dir}'; Write-Host '=== Google Antigravity CLI (agy) ===' -ForegroundColor Cyan; agy"
+
+        cmd_line = f'start wt.exe pwsh.exe -NoExit -Command "{pwsh_script}"'
+        try:
+            subprocess.Popen(cmd_line, shell=True)
+            return f"Launched Antigravity CLI in terminal at '{target_dir}', Sir."
+        except Exception:
+            cmd_line_fallback = f'start cmd.exe /k "cd /d \"{target_dir}\" && agy {sub}"'
+            subprocess.Popen(cmd_line_fallback, shell=True)
+            return f"Launched Antigravity CLI in console window at '{target_dir}', Sir."
+    except Exception as exc:
+        return f"Failed to launch Antigravity CLI: {exc}"
 
 
 def ag_status(memory) -> str:
@@ -642,8 +673,10 @@ def ag_selftest(memory) -> str:
 # ---------------------------------------------------------------------------
 
 ANTIGRAVITY_SKILLS = [
-    {"name": "ag_launch", "fn": ag_launch, "description": "Launch the Antigravity IDE application or open a specific workspace.",
+    {"name": "ag_launch", "fn": ag_launch, "description": "Launch the visual Antigravity IDE (VS Code based visual development environment and code editor) or open a specific project folder in the IDE. Use when Jay asks for 'Antigravity IDE', 'AG IDE', or the Antigravity editor.",
      "parameters": {"type": "object", "properties": {"workspace": {"type": "string", "description": "Optional folder path to open as workspace"}, "new_window": {"type": "boolean", "description": "Force opening a separate new window"}}, "required": []}},
+    {"name": "ag_cli_launch", "fn": ag_cli_launch, "description": "Launch the interactive Antigravity CLI ('agy' command-line interface) in a terminal window. Use whenever Jay asks to open 'Antigravity CLI', 'AG CLI', or 'agy'. Do not confuse with the visual IDE editor.",
+     "parameters": {"type": "object", "properties": {"command": {"type": "string", "description": "Optional agy subcommand to run in the CLI"}, "workspace": {"type": "string", "description": "Optional working directory for the CLI"}}, "required": []}},
     {"name": "ag_status", "fn": ag_status, "description": "Inspect Antigravity process state, active window title, and agent telemetry.",
      "parameters": {"type": "object", "properties": {}, "required": []}},
     {"name": "ag_focus", "fn": ag_focus, "description": "Bring Antigravity IDE window to the foreground.",
@@ -704,6 +737,7 @@ __all__ = [
     "AntigravityController",
     "ANTIGRAVITY_SKILLS",
     "ag_launch",
+    "ag_cli_launch",
     "ag_status",
     "ag_focus",
     "ag_new_window",

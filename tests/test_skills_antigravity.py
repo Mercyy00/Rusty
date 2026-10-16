@@ -9,6 +9,7 @@ from vyra.skills.antigravity_app import (
     ANTIGRAVITY_SKILLS,
     AntigravityController,
     ag_approve,
+    ag_cli_launch,
     ag_install_extension,
     ag_open_file,
     ag_read_agent_output,
@@ -93,9 +94,16 @@ class TestAntigravityController(unittest.TestCase):
         res = ag_install_extension(self.mock_memory, "unknown.publisher.extension", confirm=False)
         self.assertIn("Safety Hold", res)
 
+    @patch("subprocess.Popen")
+    def test_ag_cli_launch(self, mock_popen):
+        """ag_cli_launch launches Antigravity CLI in terminal window."""
+        mock_popen.return_value = MagicMock()
+        res = ag_cli_launch(self.mock_memory, command="new-conversation 'hello'")
+        self.assertIn("Launched Antigravity CLI", res)
+
     def test_all_antigravity_skills_schema_validity(self):
-        """All 28 Antigravity skills must have valid parameters and descriptions."""
-        self.assertEqual(len(ANTIGRAVITY_SKILLS), 28)
+        """All 29 Antigravity skills must have valid parameters and descriptions."""
+        self.assertEqual(len(ANTIGRAVITY_SKILLS), 29)
         for s in ANTIGRAVITY_SKILLS:
             with self.subTest(skill=s["name"]):
                 self.assertIn("name", s)

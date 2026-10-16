@@ -5,8 +5,10 @@ from __future__ import annotations
 import ctypes
 import html
 import json
+import queue
 import re
 import subprocess
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -544,7 +546,292 @@ def web_answer(memory, query: str, progress_callback=None) -> str:
         return context[:400] if context else "I couldn't look that up right now, Sir."
 
 
+# --- Interactive Automated Browser Control (Playwright) ---
+
+class _InteractiveBrowserWorker(threading.Thread):
+    """Dedicated background thread managing Playwright's single-threaded event loop and browser pages."""
+
+    def __init__(self):
+        super().__init__(daemon=True, name="BrowserWorker")
+        self.cmd_queue: queue.Queue = queue.Queue()
+        self.pw = None
+        self.browser = None
+        self.context = None
+        self.page = None
+
+    def _ensure_page(self, headless: bool = False):
+        from playwright.sync_api import sync_playwright
+        if not self.pw:
+            self.pw = sync_playwright().start()
+        if not self.browser or not self.browser.is_connected():
+            last_err = None
+            for ch in ("chrome", "msedge", None):
+                try:
+                    self.browser = self.pw.chromium.launch(channel=ch, headless=headless)
+                    break
+                except Exception as exc:
+                    last_err = exc
+                    continue
+            if not self.browser:
+                raise RuntimeError(f"Could not launch browser: {last_err}")
+            self.context = self.browser.new_context(
+                viewport={"width": 1280, "height": 850},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            )
+            self.page = self.context.new_page()
+        elif not self.page or self.page.is_closed():
+            self.page = self.context.new_page()
+        return self.page
+
+    def run(self):
+        while True:
+            cmd, args, resp_q = self.cmd_queue.get()
+            try:
+                if cmd == "open":
+                    headless = args.get("headless", False)
+                    page = self._ensure_page(headless=headless)
+                    url = args["url"]
+                    if not url.startswith(("http://", "https://")):
+                        url = "https://" + url
+                    page.goto(url, timeout=20000, wait_until="domcontentloaded")
+                    time.sleep(0.5)
+                    title = page.title()
+                    resp_q.put((True, f"Successfully opened {url} in interactive browser. Page title: '{title}'"))
+
+                elif cmd == "click":
+                    if not self.page or self.page.is_closed():
+                        resp_q.put((False, "No interactive browser window is currently open. Call browser_open first, Sir."))
+                        continue
+                    target = args["target"].strip()
+                    clicked = False
+                    for role in ("button", "link", "tab", "menuitem"):
+                        try:
+                            loc = self.page.get_by_role(role, name=target, exact=False).first
+                            if loc.count() > 0 and loc.is_visible():
+                                loc.click(timeout=3000)
+                                clicked = True
+                                break
+                        except Exception:
+                            pass
+                    if not clicked:
+                        try:
+                            loc = self.page.get_by_text(target, exact=False).first
+                            if loc.count() > 0 and loc.is_visible():
+                                loc.click(timeout=3000)
+                                clicked = True
+                        except Exception:
+                            pass
+                    if not clicked:
+                        try:
+                            loc = self.page.locator(target).first
+                            if loc.count() > 0 and loc.is_visible():
+                                loc.click(timeout=3000)
+                                clicked = True
+                        except Exception:
+                            pass
+                    if not clicked:
+                        try:
+                            loc = self.page.locator(f"button:has-text('{target}'), a:has-text('{target}'), [role='button']:has-text('{target}')").first
+                            if loc.count() > 0 and loc.is_visible():
+                                loc.click(timeout=3000)
+                                clicked = True
+                        except Exception:
+                            pass
+
+                    if clicked:
+                        time.sleep(0.5)
+                        resp_q.put((True, f"Clicked '{target}' on page. Active URL: {self.page.url}, Page title: '{self.page.title()}'"))
+                    else:
+                        resp_q.put((False, f"Could not locate clickable element matching '{target}' on current page."))
+
+                elif cmd == "type":
+                    if not self.page or self.page.is_closed():
+                        resp_q.put((False, "No interactive browser window is currently open. Call browser_open first, Sir."))
+                        continue
+                    text = args["text"]
+                    target = (args.get("target") or "").strip()
+                    press_enter = args.get("press_enter", False)
+                    clear = args.get("clear", True)
+
+                    loc = None
+                    if target:
+                        for sel in [
+                            f"input[placeholder*='{target}' i]",
+                            f"textarea[placeholder*='{target}' i]",
+                            f"input[name*='{target}' i]",
+                            f"input[aria-label*='{target}' i]",
+                            target,
+                        ]:
+                            try:
+                                l = self.page.locator(sel).first
+                                if l.count() > 0 and l.is_visible():
+                                    loc = l
+                                    break
+                            except Exception:
+                                pass
+                    if not loc:
+                        try:
+                            l = self.page.locator("input:not([type='hidden']), textarea, [contenteditable='true']").first
+                            if l.count() > 0 and l.is_visible():
+                                loc = l
+                        except Exception:
+                            pass
+
+                    if not loc:
+                        resp_q.put((False, f"Could not find an input field matching '{target or 'any input'}', Sir."))
+                        continue
+
+                    if clear:
+                        try:
+                            loc.fill("")
+                        except Exception:
+                            pass
+                    loc.type(text, delay=25)
+                    if press_enter:
+                        loc.press("Enter")
+                        time.sleep(0.5)
+                    resp_q.put((True, f"Typed text into input field. Current URL: {self.page.url}"))
+
+                elif cmd == "read":
+                    if not self.page or self.page.is_closed():
+                        resp_q.put((False, "No interactive browser window is open. Call browser_open first, Sir."))
+                        continue
+                    title = self.page.title()
+                    url = self.page.url
+                    body_text = self.page.inner_text("body")[:1500].strip()
+                    info = [f"URL: {url}", f"Page Title: {title}", f"Visible Content Summary:\n{body_text}"]
+                    if args.get("include_elements", True):
+                        try:
+                            elems = self.page.eval_on_selector_all(
+                                "button, a, input[type='button'], input[type='submit'], [role='button']",
+                                "els => els.map(e => (e.innerText || e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.value || '').trim()).filter(Boolean).slice(0, 30)"
+                            )
+                            if elems:
+                                info.append(f"Interactive Buttons & Links ({len(elems)} found): {', '.join(elems[:20])}")
+                        except Exception:
+                            pass
+                    resp_q.put((True, "\n\n".join(info)))
+
+                elif cmd == "scroll":
+                    if not self.page or self.page.is_closed():
+                        resp_q.put((False, "No interactive browser window is open. Call browser_open first, Sir."))
+                        continue
+                    direction = args.get("direction", "down").lower()
+                    amt = args.get("amount", 500)
+                    if direction in ("top", "start"):
+                        self.page.evaluate("window.scrollTo(0, 0)")
+                    elif direction in ("bottom", "end"):
+                        self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    elif direction == "up":
+                        self.page.evaluate(f"window.scrollBy(0, -{amt})")
+                    else:
+                        self.page.evaluate(f"window.scrollBy(0, {amt})")
+                    resp_q.put((True, f"Scrolled page {direction}."))
+
+                elif cmd == "eval_js":
+                    if not self.page or self.page.is_closed():
+                        resp_q.put((False, "No interactive browser window is open. Call browser_open first, Sir."))
+                        continue
+                    res = self.page.evaluate(args["script"])
+                    resp_q.put((True, f"JavaScript evaluation result: {json.dumps(res, default=str)}"))
+
+                elif cmd == "close":
+                    if self.browser:
+                        try:
+                            self.browser.close()
+                        except Exception:
+                            pass
+                        self.browser = None
+                        self.page = None
+                        self.context = None
+                    if self.pw:
+                        try:
+                            self.pw.stop()
+                        except Exception:
+                            pass
+                        self.pw = None
+                    resp_q.put((True, "Interactive browser session closed."))
+
+                elif cmd == "stop":
+                    break
+            except Exception as exc:
+                resp_q.put((False, f"Browser operation error: {exc}"))
+
+
+_BROWSER_WORKER: _InteractiveBrowserWorker | None = None
+_WORKER_LOCK = threading.Lock()
+
+def _get_browser_worker() -> _InteractiveBrowserWorker:
+    global _BROWSER_WORKER
+    with _WORKER_LOCK:
+        if _BROWSER_WORKER is None or not _BROWSER_WORKER.is_alive():
+            _BROWSER_WORKER = _InteractiveBrowserWorker()
+            _BROWSER_WORKER.start()
+        return _BROWSER_WORKER
+
+def _dispatch_browser_cmd(cmd: str, args: dict, timeout: float = 25.0) -> str:
+    w = _get_browser_worker()
+    resp_q = queue.Queue()
+    w.cmd_queue.put((cmd, args, resp_q))
+    try:
+        ok, res = resp_q.get(timeout=timeout)
+        return str(res)
+    except queue.Empty:
+        return "Browser action timed out, Sir."
+    except Exception as exc:
+        return f"Browser controller error: {exc}"
+
+
+def browser_open(memory, url: str = "https://google.com", headless: bool = False) -> str:
+    """Launch or navigate an interactive automated browser window to a URL. Opens visibly on screen by default so Jay can see and interact with it."""
+    return _dispatch_browser_cmd("open", {"url": url, "headless": headless}, timeout=25.0)
+
+
+def browser_click(memory, target: str) -> str:
+    """Click an interactive element (button, link, tab, checkbox) on the active webpage by its visible text (e.g. 'Watch now', 'Sign In', 'Movies') or CSS selector."""
+    return _dispatch_browser_cmd("click", {"target": target}, timeout=15.0)
+
+
+def browser_type(memory, text: str, target: str = "", press_enter: bool = False, clear: bool = True) -> str:
+    """Type text into an input field or search bar on the active webpage. Optionally press Enter to submit search/form."""
+    return _dispatch_browser_cmd("type", {"text": text, "target": target, "press_enter": press_enter, "clear": clear}, timeout=15.0)
+
+
+def browser_read_page(memory, include_elements: bool = True) -> str:
+    """Read the active webpage content, headings, body text, and enumerate all interactive elements (buttons, links, search boxes) currently visible on screen."""
+    return _dispatch_browser_cmd("read", {"include_elements": include_elements}, timeout=15.0)
+
+
+def browser_scroll(memory, direction: str = "down", amount: int = 500) -> str:
+    """Scroll the active browser webpage up, down, to top, or to bottom."""
+    return _dispatch_browser_cmd("scroll", {"direction": direction, "amount": amount}, timeout=10.0)
+
+
+def browser_eval_js(memory, script: str) -> str:
+    """Execute a JavaScript expression or function on the active browser page and return the evaluated result or console state."""
+    return _dispatch_browser_cmd("eval_js", {"script": script}, timeout=10.0)
+
+
+def browser_close(memory) -> str:
+    """Close the active automated browser session and window."""
+    return _dispatch_browser_cmd("close", {}, timeout=10.0)
+
+
 BROWSER_SKILLS = [
+    {"name": "browser_open", "fn": browser_open, "description": "Launch or navigate a real automated browser window to any URL. Opens visibly on screen by default so you and Jay can view and interact with the page.",
+     "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "The URL or website to open"}, "headless": {"type": "boolean", "description": "Run invisibly in background if true (default false: opens visibly on screen)"}}, "required": ["url"]}},
+    {"name": "browser_click", "fn": browser_click, "description": "Click any button, link, tab, or element on the active webpage by its visible text (e.g. 'Watch now', 'Movies', 'Sign In') or CSS selector.",
+     "parameters": {"type": "object", "properties": {"target": {"type": "string", "description": "The visible text of the button/link to click, or a CSS selector"}}, "required": ["target"]}},
+    {"name": "browser_type", "fn": browser_type, "description": "Type text into an input field or search bar on the active webpage. Optionally press Enter to search.",
+     "parameters": {"type": "object", "properties": {"text": {"type": "string", "description": "Text to type"}, "target": {"type": "string", "description": "Input field placeholder, name, label, or selector (leave blank for active input)"}, "press_enter": {"type": "boolean", "description": "Whether to press Enter after typing (default false)"}, "clear": {"type": "boolean", "description": "Whether to clear existing text before typing (default true)"}}, "required": ["text"]}},
+    {"name": "browser_read_page", "fn": browser_read_page, "description": "Read and inspect the active webpage content, headings, body text, and get a list of all clickable buttons, links, and inputs on screen.",
+     "parameters": {"type": "object", "properties": {"include_elements": {"type": "boolean", "description": "Whether to enumerate clickable buttons and links (default true)"}}, "required": []}},
+    {"name": "browser_scroll", "fn": browser_scroll, "description": "Scroll the active browser webpage up, down, to top, or to bottom.",
+     "parameters": {"type": "object", "properties": {"direction": {"type": "string", "description": "'down', 'up', 'top', or 'bottom' (default 'down')"}, "amount": {"type": "integer", "description": "Scroll pixel distance (default 500)"}}, "required": []}},
+    {"name": "browser_eval_js", "fn": browser_eval_js, "description": "Execute a JavaScript expression or script in the browser context to inspect DOM, read state, or trigger actions.",
+     "parameters": {"type": "object", "properties": {"script": {"type": "string", "description": "JavaScript code to evaluate"}}, "required": ["script"]}},
+    {"name": "browser_close", "fn": browser_close, "description": "Close the active automated browser window and release resources.",
+     "parameters": {"type": "object", "properties": {}, "required": []}},
     {"name": "real_web_search", "fn": real_web_search, "description": "Search the live web directly and return top answers, snippets, and source links without opening a browser window. Use for current facts, research, news, and queries.",
      "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "The search terms or question"}, "max_results": {"type": "integer", "description": "Number of results to retrieve (default 5)"}}, "required": ["query"]}},
     {"name": "check_weather", "fn": check_weather, "description": "Check live local weather, temperature, humidity, and forecast for any city or current location without needing an API key.",

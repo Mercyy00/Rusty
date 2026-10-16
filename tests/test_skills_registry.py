@@ -8,14 +8,22 @@ from vyra import skills
 
 class TestSkillsRegistry(unittest.TestCase):
     def test_total_skills_count(self):
-        """Verify exactly 146 skills are registered across all modular categories."""
-        self.assertEqual(len(skills.SKILLS), 146)
+        """Verify exactly 154 skills are registered across all modular categories."""
+        self.assertEqual(len(skills.SKILLS), 154)
         self.assertIn("search_memory", skills._BY_NAME)
         self.assertIn("real_web_search", skills._BY_NAME)
         self.assertIn("check_weather", skills._BY_NAME)
         self.assertIn("check_stock_crypto", skills._BY_NAME)
         self.assertIn("news_briefing", skills._BY_NAME)
         self.assertIn("summarize_webpage", skills._BY_NAME)
+        # Interactive Browser Control skills
+        self.assertIn("browser_open", skills._BY_NAME)
+        self.assertIn("browser_click", skills._BY_NAME)
+        self.assertIn("browser_type", skills._BY_NAME)
+        self.assertIn("browser_read_page", skills._BY_NAME)
+        self.assertIn("browser_scroll", skills._BY_NAME)
+        self.assertIn("browser_eval_js", skills._BY_NAME)
+        self.assertIn("browser_close", skills._BY_NAME)
         # Power tools and diagnostics
         self.assertIn("kill_port", skills._BY_NAME)
         self.assertIn("network_diagnostics", skills._BY_NAME)

@@ -66,9 +66,14 @@ Understanding him — this matters a lot:
 What you can do — reach for a tool whenever something needs doing (act, don't just describe), then confirm briefly:
 - Operational Modes: switch_mode(mode='tactical' | 'engineer' | 'ghost') — switch your active personality, reasoning style, and audio profile whenever he asks (e.g. "switch to engineer mode", "ghost mode", "tactical mode").
 - Apps & windows: open_app, open_folder, open_file (open any file, PDF, document, or project on screen), close_app(name) (close an application or browser by name, or close a web tab/app like 'youtube' or 'meet'), close_browser_tab(query) (close a specific tab like 'youtube'/'meet' or active tab in browser), close_active_window, close_other_windows(keep=[...]), list_running_apps, list_folder, read_file (reads text, PDF, DOCX, and PPTX cleanly).
+- Interactive Browser Control: browser_open(url) (launches or navigates a real interactive browser window on screen), browser_click(target) (clicks buttons, links, or tabs by text like 'Watch now' or selector), browser_type(text, target, press_enter) (types into inputs/search boxes), browser_read_page() (reads current webpage DOM, headings, text, and lists all interactive buttons/links), browser_scroll(direction), browser_eval_js(script), browser_close(). Whenever Jay asks you to control or use the browser, inspect his websites (like CineVault), or interact with web elements, reach for these browser tools directly!
+- Antigravity Environments:
+  * ag_cli_launch(command, workspace) — launches the Antigravity CLI ('agy') in a new interactive terminal window. Use when Jay asks for 'Antigravity CLI', 'AG CLI', or 'agy'.
+  * ag_launch(workspace) — launches the visual Antigravity IDE (VS Code based visual development environment and code editor). Use when Jay asks for 'Antigravity IDE', 'AG IDE', or to open the Antigravity editor/workspace.
+  DO NOT confuse the two: AG CLI is the terminal interface ('agy'); AG IDE is the graphical code editor.
 - System: volume_up/down/mute, media_play_pause/next/previous, play_music (his Raaga app), get_battery_status, get_system_info, set_brightness, lock_pc, sleep_pc, save_screenshot, type_text, read_clipboard, write_clipboard.
 - Web & vision: web_answer (SEARCH THE WEB and answer — use this for current events, facts, prices, "what/who is", or anything you're unsure of; never guess, look it up), web_search, open_url, open_youtube, see_screen (look at his screen), inspect_active_window (identify currently focused app & window title), generate_image.
-- Full PC control: run_terminal_command (any PowerShell — you can operate the whole machine), press_hotkey, click_mouse, write_file, search_files. Use these to actually get things done end-to-end; be careful with anything destructive and confirm first.
+- Full PC control: run_terminal_command (any PowerShell — you can operate the whole machine), press_hotkey, click_mouse, write_file, search_files. Use these to actually get things done end-to-end; be careful with anything destructive and confirm first. Do not read raw command paths or syntax out loud.
 - Creating documents: for Word (.docx) and PDF (.pdf) call create_word / create_pdf with a `title` and a `topic` (a clear brief of what to cover) — Rusty then writes a FULL, comprehensive, multi-page document itself. Use create_pdf whenever he asks for a PDF (never create_word for that). When he asks for "all / complete / detailed / everything", pass a rich topic so it's exhaustive. create_excel takes CSV. For presentations use create_ppt with a `topic` — it writes AND designs a polished, themed deck (themes: midnight/slate/royal/clean). Also use export_note_to_pdf to turn saved notes into PDF documents, and convert_document to convert markdown/text to PDF or Word. You're genuinely excellent at thorough, polished docs, decks, and spreadsheets.
 - Opening files & docs: when he says "open the file you created", "open that PDF", or names a file, use open_file(path) — it automatically searches Desktop\\Rusty and launches it.
 - Building a website / landing page / portfolio: use **create_website(name, description)** — just describe what you want (theme, sections, style) and it generates the full page and opens it. This is your go-to for sites. For bigger multi-file apps or real code projects, use ask_claude_code (the Claude Code CLI). create_project is only for dropping a single small pre-written file.
@@ -101,71 +106,83 @@ Current time: {datetime.now().strftime('%A, %d %B %Y, %H:%M')}
 """
 
 
-def _format_tool_status(name: str, args: dict) -> str:
-    """Produce a friendly, spoken status message when Rusty initiates a tool."""
+def _format_tool_status(name: str, args: dict) -> tuple[str, bool]:
+    """Produce friendly status for HUD. Spoken audio (speak=True) is reserved exclusively for long creative generations."""
     args = args or {}
     if name == "create_pdf":
         t = args.get("title") or args.get("topic") or "document"
-        return f"Drafting and compiling PDF document '{t}', Sir..."
+        return f"Drafting and compiling PDF document '{t}', Sir", True
     elif name == "create_word":
         t = args.get("title") or args.get("topic") or "document"
-        return f"Drafting Word document '{t}', Sir..."
+        return f"Drafting Word document '{t}', Sir", True
     elif name == "create_ppt":
         t = args.get("topic") or "presentation"
-        return f"Structuring and generating presentation deck for '{t}', Sir..."
+        return f"Structuring presentation deck for '{t}', Sir", True
     elif name == "create_website":
         t = args.get("name") or "website"
-        return f"Designing and building website '{t}', Sir..."
+        return f"Designing and building website '{t}', Sir", True
     elif name == "create_project":
         t = args.get("name") or "project"
-        return f"Scaffolding project files for '{t}', Sir..."
+        return f"Scaffolding project files for '{t}', Sir", True
     elif name == "create_excel":
         t = args.get("title") or "spreadsheet"
-        return f"Compiling data and formatting Excel sheet '{t}', Sir..."
-    elif name == "web_answer":
-        q = args.get("query") or "information"
-        return f"Searching knowledge sources and researching '{q[:40]}', Sir..."
-    elif name == "see_screen":
-        return "Capturing screen display and analyzing visual details, Sir..."
-    elif name == "ask_claude_code":
-        return "Delegating task to Claude Code engine, Sir..."
-    elif name == "search_files":
-        q = args.get("query") or "files"
-        return f"Searching local drives for '{q}', Sir..."
-    elif name == "run_terminal_command":
-        cmd = args.get("command") or ""
-        short = (cmd[:35] + "...") if len(cmd) > 35 else cmd
-        return f"Executing terminal command '{short}', Sir..."
+        return f"Compiling data and formatting Excel sheet '{t}', Sir", True
+    elif name == "generate_image":
+        return "Synthesizing visual artwork, Sir", True
     elif name == "export_note_to_pdf":
-        return "Exporting note to PDF document layout, Sir..."
+        return "Exporting note to PDF document layout, Sir", True
     elif name == "convert_document":
         fmt = str(args.get("target_format") or "PDF").upper()
-        return f"Converting document to {fmt}, Sir..."
+        return f"Converting document to {fmt}, Sir", True
+    elif name == "ask_claude_code":
+        return "Delegating task to Claude Code engine, Sir", True
+    # Fast, system, inspection, browser, and terminal tools: HUD visual indicator ONLY, NEVER speak aloud!
+    elif name == "run_terminal_command":
+        return "Executing system command...", False
+    elif name == "see_screen":
+        return "Inspecting screen display...", False
+    elif name == "search_files":
+        q = args.get("query") or "files"
+        return f"Searching local drives for '{q}'...", False
+    elif name == "browser_open":
+        u = args.get("url") or "webpage"
+        return f"Opening browser to {u}...", False
+    elif name == "browser_click":
+        t = args.get("target") or "element"
+        return f"Clicking '{t}' in browser...", False
+    elif name == "browser_type":
+        return "Entering input in browser...", False
+    elif name == "browser_read_page":
+        return "Reading browser page content...", False
+    elif name == "browser_scroll":
+        return "Scrolling browser page...", False
+    elif name == "ag_launch":
+        return "Launching Antigravity IDE...", False
+    elif name == "ag_cli_launch":
+        return "Launching Antigravity CLI in terminal...", False
     elif name == "play_music":
         q = args.get("query") or ""
-        return f"Opening Raaga app to play music{' for ' + q if q else ''}, Sir..."
-    elif name == "generate_image":
-        return "Synthesizing visual artwork, Sir..."
+        return f"Opening Raaga to play music{' for ' + q if q else ''}, Sir", False
     elif name == "send_whatsapp_message":
-        return "Preparing WhatsApp message for dispatch, Sir..."
+        return "Preparing WhatsApp message...", False
     elif name == "open_file":
         import os
         p = args.get("path") or "document"
-        return f"Opening '{os.path.basename(p)}' for you, Sir..."
+        return f"Opening '{os.path.basename(p)}'...", False
     elif name == "switch_mode":
         m = str(args.get("mode") or "").upper()
-        return f"Calibrating neural systems to {m} mode, Sir..."
+        return f"Calibrating systems to {m} mode...", False
     elif name == "close_browser_tab":
         q = args.get("query") or "active"
-        return f"Closing {q} browser tab, Sir..."
+        return f"Closing {q} browser tab...", False
     elif name == "close_app":
         app = args.get("name") or "application"
-        return f"Closing {app}, Sir..."
+        return f"Closing {app}...", False
     elif name == "close_active_window":
-        return "Closing active window, Sir..."
+        return "Closing active window...", False
     elif name == "close_other_windows":
-        return "Closing other background windows, Sir..."
-    return ""
+        return "Closing background windows...", False
+    return "", False
 
 
 class Brain:
@@ -259,10 +276,10 @@ class Brain:
                     results = []
                     for tc in resp.tool_calls:
                         if progress_callback:
-                            st = _format_tool_status(tc["name"], tc.get("args") or {})
+                            st, should_speak = _format_tool_status(tc["name"], tc.get("args") or {})
                             if st:
                                 try:
-                                    progress_callback(st, speak=True)
+                                    progress_callback(st, speak=should_speak)
                                 except Exception:
                                     pass
                         t0 = time.time()

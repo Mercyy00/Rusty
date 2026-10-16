@@ -404,7 +404,11 @@ def extract_spoken_summary(text: str, max_sentences: int = 2, max_words: int = 4
 
     summary = " ".join(chosen).strip()
     if not summary:
-        summary = combined[:120].strip() + "."
+        summary = combined[:120].strip()
+    summary = re.sub(r'\.{2,}|…', ' ', summary)
+    summary = re.sub(r'\s+', ' ', summary).strip()
+    if summary and not summary.endswith((".", "!", "?", "।")):
+        summary += "."
     return summary
 
 
@@ -439,12 +443,29 @@ class Mouth:
                 self._piper = None
 
     def _prepare_text(self, text: str) -> str:
-        """Strip markdown syntax and fix phonetic pronunciation of names."""
+        """Strip markdown syntax, fix phonetic pronunciation of names, and sanitize TTS text."""
+        # 1. Clean markdown formatting and links
         cleaned = re.sub(r'[*_`#~]', '', text)
         cleaned = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', cleaned)
+
+        # 2. Replace repeated dots, ellipses, and raw punctuation that TTS reads out as "dot dot dot" or "period"
+        cleaned = re.sub(r'\.{2,}|…', ' ', cleaned)
+        cleaned = re.sub(r'["\']\s*,\s*["\']', ' ', cleaned)
+
+        # 3. Clean raw Windows paths (e.g. C:\Users\...) so TTS doesn't spell out backslashes and drives
+        cleaned = re.sub(r'[A-Za-z]:\\[^\s"\'<>]+', 'the specified path', cleaned)
+
+        # 4. Remove isolated quotes and stray brackets
+        cleaned = re.sub(r'["\'`]', '', cleaned)
+
+        # 5. Clean trailing dots or orphan punctuation
+        cleaned = re.sub(r'\s+([,.:;?!])', r'\1', cleaned)
+        cleaned = re.sub(r'[,:;]\s*$', '.', cleaned)
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
         if self.pronounce_name:
             cleaned = re.sub(r'\bVYRA\b', self.pronounce_name, cleaned, flags=re.IGNORECASE)
-        return cleaned.strip()
+        return cleaned
 
     def stop(self):
         """Interrupt any in-progress speech (barge-in)."""

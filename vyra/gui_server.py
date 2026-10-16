@@ -267,7 +267,9 @@ async def proactive_watcher():
 def make_progress_notifier(loop=None, mute: bool = False):
     """Factory to create a real-time progress callback that broadcasts to HUD and narrates speech."""
     active_loop = loop or server_loop
+    last_spoken = ""
     def on_progress(message: str, speak: bool = True):
+        nonlocal last_spoken
         if not message:
             return
         logger.info("progress notification: %s (speak=%s)", message, speak)
@@ -282,7 +284,10 @@ def make_progress_notifier(loop=None, mute: bool = False):
                 target_loop
             )
         if speak and not mute and not is_muted_global:
-            threading.Thread(target=lambda: mouth.speak(message), daemon=True).start()
+            if message != last_spoken:
+                last_spoken = message
+                mouth.stop()
+                threading.Thread(target=lambda: mouth.speak(message), daemon=True).start()
     return on_progress
 
 
@@ -337,6 +342,7 @@ async def handle_chat(request):
     await broadcast_ws({"type": "speech", "text": reply})
 
     if not mute and not is_muted_global:
+        mouth.stop()
         def _speak():
             mouth.speak(reply)
         threading.Thread(target=_speak, daemon=True).start()
@@ -473,6 +479,7 @@ async def run_conversational_followup_loop(loop, mute: bool = False):
 
         await broadcast_ws({"type": "speech", "text": reply})
         if not mute and not is_muted_global:
+            mouth.stop()
             await asyncio.to_thread(mouth.speak, reply)
 
 
@@ -565,6 +572,7 @@ async def handle_voice_listen(request):
     await broadcast_ws({"type": "state", "state": "idle"})
 
     if not mute:
+        mouth.stop()
         await asyncio.to_thread(mouth.speak, reply)
 
     # Enter continuous attentive conversation mode
@@ -612,6 +620,7 @@ async def process_wake_event(phrase: str, cmd: str):
             await broadcast_ws({"type": "state", "state": "idle"})
 
             if not is_muted_global:
+                mouth.stop()
                 await asyncio.to_thread(mouth.speak, reply)
 
             # Continue in attentive follow-up mode so Jay doesn't have to repeat 'Friday'!
@@ -688,6 +697,7 @@ async def process_wake_event(phrase: str, cmd: str):
             await broadcast_ws({"type": "state", "state": "idle"})
 
             if not is_muted_global:
+                mouth.stop()
                 await asyncio.to_thread(mouth.speak, reply)
 
             # Continue in attentive follow-up mode!

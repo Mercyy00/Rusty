@@ -68,6 +68,29 @@ class TestSkillsBrowser(unittest.TestCase):
             output = skills.execute("close_browser_tab", {"query": "youtube"}, self.mock_memory)
             self.assertIn("No active browser window found", output)
 
+    def test_browser_automation_skills_registered(self):
+        """Verify all interactive browser control skills are registered and callable."""
+        for skill_name in ["browser_open", "browser_click", "browser_type", "browser_read_page", "browser_scroll", "browser_eval_js", "browser_close"]:
+            self.assertIn(skill_name, skills._BY_NAME)
+            self.assertTrue(callable(skills._BY_NAME[skill_name]["fn"]))
+
+    def test_browser_actions_graceful_when_no_session(self):
+        """Verify browser actions handle uninitialized or closed browser gracefully."""
+        res_click = skills.execute("browser_click", {"target": "Submit"}, self.mock_memory)
+        self.assertIn("No interactive browser window", res_click)
+
+        res_read = skills.execute("browser_read_page", {}, self.mock_memory)
+        self.assertIn("No interactive browser window", res_read)
+
+        res_type = skills.execute("browser_type", {"text": "hello"}, self.mock_memory)
+        self.assertIn("No interactive browser window", res_type)
+
+        res_scroll = skills.execute("browser_scroll", {}, self.mock_memory)
+        self.assertIn("No interactive browser window", res_scroll)
+
+        res_eval = skills.execute("browser_eval_js", {"script": "1+1"}, self.mock_memory)
+        self.assertIn("No interactive browser window", res_eval)
+
 
 if __name__ == "__main__":
     unittest.main()
